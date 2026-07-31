@@ -141,6 +141,17 @@ YAML
 
     post {
         always {
+            sh '''
+            if docker compose version > /dev/null 2>&1; then
+                docker compose -f docker-compose.yml -f docker-compose.ci.yml -p ${COMPOSE_PROJECT} down --remove-orphans || true
+            elif command -v docker-compose > /dev/null 2>&1; then
+                docker-compose -f docker-compose.yml -f docker-compose.ci.yml -p ${COMPOSE_PROJECT} down --remove-orphans || true
+            else
+                echo "Skipping compose cleanup: no compose command available"
+            fi
+
+            rm -f docker-compose.ci.yml || true
+            '''
             cleanWs(deleteDirs: true, notFailBuild: true)
         }
     }
