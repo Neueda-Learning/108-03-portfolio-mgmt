@@ -9,7 +9,7 @@ services:
       MYSQL_PASSWORD: portuser
       MYSQL_ROOT_PASSWORD: n3u3da!
     ports:
-      - "3306:3306"
+      - "${DB_PORT:-3306}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -32,7 +32,7 @@ services:
       SPRING_DATASOURCE_USERNAME: portuser
       SPRING_DATASOURCE_PASSWORD: portuser
     ports:
-      - "8080:8080"
+      - "${BACKEND_PORT:-8080}:8080"
 
 volumes:
   mysql_data:

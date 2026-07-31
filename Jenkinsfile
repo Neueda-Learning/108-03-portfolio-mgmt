@@ -68,20 +68,10 @@ pipeline {
                     exit 1
                 fi
 
-                                # CI override: avoid binding host ports (e.g. 8080/3306) on shared Jenkins agents.
-                                cat > docker-compose.ci.yml <<'YAML'
-services:
-    db:
-        ports: []
-    backend:
-        ports: []
-YAML
-
-                                COMPOSE_FILES="-f docker-compose.yml -f docker-compose.ci.yml"
-
-                                $COMPOSE_CMD $COMPOSE_FILES -p ${COMPOSE_PROJECT} down --remove-orphans || true
-                                $COMPOSE_CMD $COMPOSE_FILES -p ${COMPOSE_PROJECT} build
-                                $COMPOSE_CMD $COMPOSE_FILES -p ${COMPOSE_PROJECT} up -d
+                # Use random host ports in CI to avoid clashes on shared Jenkins agents.
+                $COMPOSE_CMD -p ${COMPOSE_PROJECT} down --remove-orphans || true
+                DB_PORT=0 BACKEND_PORT=0 $COMPOSE_CMD -p ${COMPOSE_PROJECT} build
+                DB_PORT=0 BACKEND_PORT=0 $COMPOSE_CMD -p ${COMPOSE_PROJECT} up -d
                 '''
             }
         }
@@ -98,8 +88,6 @@ YAML
                     exit 1
                 fi
 
-                COMPOSE_FILES="-f docker-compose.yml -f docker-compose.ci.yml"
-
                 echo "Waiting for backend to become healthy"
                 for i in $(seq 1 30); do
                     if docker run --rm --network ${COMPOSE_PROJECT}_default curlimages/curl:8.9.1 -fsS http://backend:8080/actuator/health | grep -q '\"status\":\"UP\"'; then
@@ -109,7 +97,7 @@ YAML
 
                     if [ "$i" = "30" ]; then
                         echo "Backend failed to start"
-                        $COMPOSE_CMD $COMPOSE_FILES -p ${COMPOSE_PROJECT} logs --tail=100
+                        $COMPOSE_CMD -p ${COMPOSE_PROJECT} logs --tail=100
                         exit 1
                     fi
 
@@ -125,14 +113,12 @@ YAML
                 always {
                     sh '''
                     if docker compose version > /dev/null 2>&1; then
-                        docker compose -f docker-compose.yml -f docker-compose.ci.yml -p ${COMPOSE_PROJECT} down --remove-orphans || true
+                        docker compose -p ${COMPOSE_PROJECT} down --remove-orphans || true
                     elif command -v docker-compose > /dev/null 2>&1; then
-                        docker-compose -f docker-compose.yml -f docker-compose.ci.yml -p ${COMPOSE_PROJECT} down --remove-orphans || true
+                        docker-compose -p ${COMPOSE_PROJECT} down --remove-orphans || true
                     else
                         echo "Skipping compose cleanup: no compose command available"
                     fi
-
-                    rm -f docker-compose.ci.yml || true
                     '''
                 }
             }
@@ -143,14 +129,12 @@ YAML
         always {
             sh '''
             if docker compose version > /dev/null 2>&1; then
-                docker compose -f docker-compose.yml -f docker-compose.ci.yml -p ${COMPOSE_PROJECT} down --remove-orphans || true
+                docker compose -p ${COMPOSE_PROJECT} down --remove-orphans || true
             elif command -v docker-compose > /dev/null 2>&1; then
-                docker-compose -f docker-compose.yml -f docker-compose.ci.yml -p ${COMPOSE_PROJECT} down --remove-orphans || true
+                docker-compose -p ${COMPOSE_PROJECT} down --remove-orphans || true
             else
                 echo "Skipping compose cleanup: no compose command available"
             fi
-
-            rm -f docker-compose.ci.yml || true
             '''
             cleanWs(deleteDirs: true, notFailBuild: true)
         }
