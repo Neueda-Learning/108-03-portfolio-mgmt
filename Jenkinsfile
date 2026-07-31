@@ -68,10 +68,11 @@ pipeline {
                     exit 1
                 fi
 
-                # Use random host ports in CI to avoid clashes on shared Jenkins agents.
+                # Use stable host ports so services are consistently reachable after deploy.
                 $COMPOSE_CMD -p ${COMPOSE_PROJECT} down --remove-orphans || true
-                DB_PORT=0 BACKEND_PORT=0 FRONTEND_PORT=0 $COMPOSE_CMD -p ${COMPOSE_PROJECT} build
-                DB_PORT=0 BACKEND_PORT=0 FRONTEND_PORT=0 $COMPOSE_CMD -p ${COMPOSE_PROJECT} up -d
+                DB_PORT=${DB_PORT:-13306} BACKEND_PORT=${BACKEND_PORT:-18080} FRONTEND_PORT=${FRONTEND_PORT:-15173} $COMPOSE_CMD -p ${COMPOSE_PROJECT} build
+                DB_PORT=${DB_PORT:-13306} BACKEND_PORT=${BACKEND_PORT:-18080} FRONTEND_PORT=${FRONTEND_PORT:-15173} $COMPOSE_CMD -p ${COMPOSE_PROJECT} up -d
+                echo "Services started with ports: db=${DB_PORT:-13306}, backend=${BACKEND_PORT:-18080}, frontend=${FRONTEND_PORT:-15173}"
                 '''
             }
         }
