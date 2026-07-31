@@ -46,5 +46,6 @@ services:
     ports:
       - "${FRONTEND_PORT:-5173}:5173"
 
+
 volumes:
   mysql_data:
