@@ -32,11 +32,7 @@ pipeline {
             post {
                 always {
                     junit testResults: 'backend/target/surefire-reports/*.xml', allowEmptyResults: true
-                    jacoco(
-                        execPattern: 'backend/target/jacoco.exec',
-                        classPattern: 'backend/target/classes',
-                        sourcePattern: 'backend/src/main/java'
-                    )
+                    archiveArtifacts artifacts: 'backend/target/jacoco.exec, backend/target/site/jacoco/**/*', allowEmptyArchive: true
                 }
             }
         }
