@@ -32,18 +32,27 @@ pipeline {
             post {
                 always {
                     junit testResults: 'backend/target/surefire-reports/*.xml', allowEmptyResults: true
-                    archiveArtifacts artifacts: 'backend/target/jacoco.exec, backend/target/site/jacoco/**/*', allowEmptyArchive: true
+                    script {
+                        if (fileExists('backend/target/jacoco.exec')) {
+                            archiveArtifacts artifacts: 'backend/target/jacoco.exec', allowEmptyArchive: true
+                        }
+                        if (fileExists('backend/target/site/jacoco')) {
+                            archiveArtifacts artifacts: 'backend/target/site/jacoco/**/*', allowEmptyArchive: true
+                        }
+                    }
                 }
             }
         }
 
         stage('Frontend: Build & Test') {
             steps {
-                dir('frontend') {
-                    sh 'npm ci'
-                    sh 'npm test -- --watchAll=false'
-                    sh 'npm run build'
-                }
+                sh '''
+                docker run --rm \
+                  -v "$PWD/frontend:/app" \
+                  -w /app \
+                  node:20-alpine \
+                  sh -lc "npm ci && npm test -- --watchAll=false && npm run build"
+                '''
             }
         }
 
