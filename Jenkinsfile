@@ -53,17 +53,17 @@ pipeline {
 
         stage('Docker: Build Images') {
             steps {
-                sh """
+                sh '''
                 docker compose -p ${COMPOSE_PROJECT} down --remove-orphans || true
                 docker compose -p ${COMPOSE_PROJECT} build
                 docker compose -p ${COMPOSE_PROJECT} up -d
-                """
+                '''
             }
         }
 
         stage('Smoke Test') {
             steps {
-                sh """
+                sh '''
                 echo "Waiting for backend to become healthy"
                 for i in $(seq 1 30); do
                     if curl -fs http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"'; then
@@ -83,7 +83,7 @@ pipeline {
                 echo "Checking core endpoints..."
                 curl -fs http://localhost:8080/actuator/health > /dev/null
                 echo "Smoke test passed"
-                """
+                '''
             }
             post {
                 always {
