@@ -59,9 +59,18 @@ pipeline {
         stage('Docker: Build Images') {
             steps {
                 sh '''
-                docker compose -p ${COMPOSE_PROJECT} down --remove-orphans || true
-                docker compose -p ${COMPOSE_PROJECT} build
-                docker compose -p ${COMPOSE_PROJECT} up -d
+                if docker compose version > /dev/null 2>&1; then
+                    COMPOSE_CMD="docker compose"
+                elif command -v docker-compose > /dev/null 2>&1; then
+                    COMPOSE_CMD="docker-compose"
+                else
+                    echo "Neither 'docker compose' nor 'docker-compose' is available on this agent"
+                    exit 1
+                fi
+
+                $COMPOSE_CMD -p ${COMPOSE_PROJECT} down --remove-orphans || true
+                $COMPOSE_CMD -p ${COMPOSE_PROJECT} build
+                $COMPOSE_CMD -p ${COMPOSE_PROJECT} up -d
                 '''
             }
         }
@@ -69,6 +78,15 @@ pipeline {
         stage('Smoke Test') {
             steps {
                 sh '''
+                if docker compose version > /dev/null 2>&1; then
+                    COMPOSE_CMD="docker compose"
+                elif command -v docker-compose > /dev/null 2>&1; then
+                    COMPOSE_CMD="docker-compose"
+                else
+                    echo "Neither 'docker compose' nor 'docker-compose' is available on this agent"
+                    exit 1
+                fi
+
                 echo "Waiting for backend to become healthy"
                 for i in $(seq 1 30); do
                     if curl -fs http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"'; then
@@ -78,7 +96,7 @@ pipeline {
 
                     if [ "$i" = "30" ]; then
                         echo "Backend failed to start"
-                        docker compose -p ${COMPOSE_PROJECT} logs --tail=100
+                        $COMPOSE_CMD -p ${COMPOSE_PROJECT} logs --tail=100
                         exit 1
                     fi
 
@@ -92,7 +110,15 @@ pipeline {
             }
             post {
                 always {
-                    sh 'docker compose -p ${COMPOSE_PROJECT} down --remove-orphans || true'
+                    sh '''
+                    if docker compose version > /dev/null 2>&1; then
+                        docker compose -p ${COMPOSE_PROJECT} down --remove-orphans || true
+                    elif command -v docker-compose > /dev/null 2>&1; then
+                        docker-compose -p ${COMPOSE_PROJECT} down --remove-orphans || true
+                    else
+                        echo "Skipping compose cleanup: no compose command available"
+                    fi
+                    '''
                 }
             }
         }
