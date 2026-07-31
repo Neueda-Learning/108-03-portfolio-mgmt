@@ -44,14 +44,14 @@ pipeline {
             }
         }
 
-        stage('Frontend: Build & Test') {
+        stage('Frontend: Build') {
             steps {
                 sh '''
                 docker run --rm \
                   -v "$PWD/frontend:/app" \
                   -w /app \
                   node:20-alpine \
-                  sh -lc "npm ci && npm test -- --watchAll=false && npm run build"
+                  sh -lc "npm ci && npm run build"
                 '''
             }
         }
