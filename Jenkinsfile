@@ -70,9 +70,9 @@ pipeline {
 
                 # Use stable host ports so services are consistently reachable after deploy.
                 $COMPOSE_CMD -p ${COMPOSE_PROJECT} down --remove-orphans || true
-                DB_PORT=13306 BACKEND_PORT=443 FRONTEND_PORT=5763 $COMPOSE_CMD -p ${COMPOSE_PROJECT} build
-                DB_PORT=13306 BACKEND_PORT=443 FRONTEND_PORT=5763 $COMPOSE_CMD -p ${COMPOSE_PROJECT} up -d
-                echo "Services started with ports: db=13306, backend=8082, frontend=443"
+                DB_PORT=5173 BACKEND_PORT=8082 FRONTEND_PORT=5763 $COMPOSE_CMD -p ${COMPOSE_PROJECT} build
+                DB_PORT=5173 BACKEND_PORT=8082 FRONTEND_PORT=5763 $COMPOSE_CMD -p ${COMPOSE_PROJECT} up -d
+                echo "Services started with ports: db=13306, backend=8082, frontend=5763"
                 '''
             }
         }
