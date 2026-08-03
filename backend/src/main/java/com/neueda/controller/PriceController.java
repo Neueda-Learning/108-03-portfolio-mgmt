@@ -11,11 +11,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/price")
 public class PriceController {
     private final PriceService priceService;
-    public PriceController(@PathVariable PriceService priceService) {
+
+    public PriceController(PriceService priceService) {
         this.priceService = priceService;
     }
+
     @GetMapping("/{ticker}")
-    public PriceResponse getPrice(String ticker) {
+    public PriceResponse getPrice(@PathVariable String ticker) {
         return priceService.getPrice(ticker);
     }
 }

@@ -1,36 +1,68 @@
 package com.neueda.service;
 
+import com.neueda.dto.CachedPriceDataResponse;
 import com.neueda.dto.PriceResponse;
-import com.neueda.dto.YahooChartResponse;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Locale;
 
 @Service
 public class PriceService {
+    private static final DateTimeFormatter API_TIMESTAMP_FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.US);
+
     private final RestClient client;
 
-    public PriceService(RestClient yahooRestClient) {
-        this.client = yahooRestClient;
+    public PriceService(RestClient priceApiRestClient) {
+        this.client = priceApiRestClient;
     }
 
     public PriceResponse getPrice(String ticker) {
-        var meta = fetch(ticker, "1d").chart().result().get(0).meta();
+        CachedPriceDataResponse response = fetch();
+        List<Double> closePrices = response.price_data().close();
+        List<String> timestamps = response.price_data().timestamp();
+
+        if (closePrices == null || closePrices.isEmpty()) {
+            throw new IllegalStateException("No cached prices available for ticker: " + ticker);
+        }
+
+        int latestIndex = closePrices.size() - 1;
+        Double latestClose = closePrices.get(latestIndex);
+        if (latestClose == null) {
+            throw new IllegalStateException("Latest cached price is missing for ticker: " + ticker);
+        }
+
+        Instant asOf = Instant.now();
+        if (timestamps != null && timestamps.size() > latestIndex && timestamps.get(latestIndex) != null) {
+            asOf = LocalDateTime.parse(timestamps.get(latestIndex), API_TIMESTAMP_FORMATTER).toInstant(ZoneOffset.UTC);
+        }
+
         return new PriceResponse(
-                meta.symbol(),
-                BigDecimal.valueOf(meta.regularMarketPrice()),
-                meta.currency(),
-                Instant.now()
+                ticker.toUpperCase(Locale.ROOT),
+                BigDecimal.valueOf(latestClose),
+                "USD",
+                asOf
         );
     }
 
-    private YahooChartResponse fetch(String ticker, String range) {
-        return client.get()
-                .uri("/v8/finance/chart/{ticker}?range={range}&interval=1d", ticker, range)
+    private CachedPriceDataResponse fetch() {
+        CachedPriceDataResponse response = client.get()
+                .uri("/cachedPriceData")
                 .retrieve()
-                .body(YahooChartResponse.class);
+                .body(CachedPriceDataResponse.class);
+
+        if (response == null || response.price_data() == null) {
+            throw new IllegalStateException("Cached price API returned an empty response");
+        }
+
+        return response;
     }
 }
