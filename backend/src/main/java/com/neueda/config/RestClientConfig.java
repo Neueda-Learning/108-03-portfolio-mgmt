@@ -8,7 +8,7 @@ import org.springframework.web.client.RestClient;
 @Configuration
 public class RestClientConfig {
     @Bean
-    RestClient yahooRestClient(@Value("${yahoo.api.base.url}") String baseUrl) {
+    RestClient yahooRestClient(@Value("${yahoo.base.url}") String baseUrl) {
         return RestClient.builder().baseUrl(baseUrl).build();
     }
 }
