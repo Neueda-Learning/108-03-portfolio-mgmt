@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes as RouterRoutes } from 'react-router-dom';
 import React from 'react'
+import Layout from '../common/Layout';
 
 import Dashboard from '../pages/Dashboard';
 import Holdings from '../pages/Holdings';
@@ -10,6 +11,7 @@ const AppRoutes = () => {
   return (
      <BrowserRouter>
        <RouterRoutes>
+        <Route element={<Layout/>}></Route>
          <Route path="/" element={<Dashboard />} />
          <Route path="/holdings" element={<Holdings />} />
          <Route path="/performance" element={<Performance />} />
