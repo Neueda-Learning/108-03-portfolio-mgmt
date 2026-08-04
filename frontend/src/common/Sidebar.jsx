@@ -4,18 +4,14 @@ import {
 	FiBarChart2,
 	FiGrid,
 	FiPieChart,
-	FiPlusSquare,
-	FiRepeat,
 	FiSettings,
 } from 'react-icons/fi'
 
 const defaultMenuItems = [
 	{ to: '/', label: 'Dashboard', icon: FiGrid },
 	{ to: '/holdings', label: 'Holdings', icon: FiPieChart },
-	{ to: '/performance', label: 'Performance', icon: FiActivity },
-	{ to: '/add-asset', label: 'Add Asset', icon: FiPlusSquare },
-	{ to: '/transactions', label: 'Transactions', icon: FiRepeat },
-	{ to: '/reports', label: 'Reports', icon: FiBarChart2 },
+        { to: '/performance', label: 'Performance', icon: FiActivity },
+	// { to: '/reports', label: 'Reports', icon: FiBarChart2 },
 	{ to: '/settings', label: 'Settings', icon: FiSettings },
 ]
 

@@ -1,17 +1,24 @@
-import { useMemo, useState } from 'react'
+import { useContext, useEffect, useMemo, useState } from 'react'
 import { FiChevronDown } from 'react-icons/fi'
+import UserContext from '../context/UserContext.jsx'
 
-function Navbar({ pageTitle = 'Dashboard', users = [], activeUserId = 'all', onUserChange = () => {} }) {
+function Navbar({ pageTitle = 'Dashboard' }) {
 	const [showProfileMenu, setShowProfileMenu] = useState(false)
+	const { users, selectedUser, setSelectedUser } = useContext(UserContext)
+	const [activeUserId, setActiveUserId] = useState(
+		selectedUser?.id != null ? String(selectedUser.id) : users[0]?.id != null ? String(users[0].id) : '',
+	)
+
+	useEffect(() => {
+		if (selectedUser?.id != null) {
+			setActiveUserId(String(selectedUser.id))
+		}
+	}, [selectedUser])
 
 	const profileName = useMemo(() => {
-		if (activeUserId === 'all') {
-			return 'User 1'
-		}
-
-		const selected = users.find((user) => user.id === activeUserId)
-		return selected ? selected.name : 'User 1'
-	}, [activeUserId, users])
+		const selected = users.find((user) => String(user.id) === activeUserId)
+		return selected?.name || selectedUser?.name || 'User'
+	}, [activeUserId, selectedUser, users])
 
 	const profileInitials = useMemo(() => {
 		return profileName
@@ -39,11 +46,16 @@ function Navbar({ pageTitle = 'Dashboard', users = [], activeUserId = 'all', onU
 					id="userScope"
 					className="rounded-[14px] border border-[#c8d6e7] bg-white px-3.5 py-2.5 text-sm font-semibold leading-tight text-slate-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] transition-[border-color,box-shadow,transform] duration-200 hover:border-[#9ab4d1] focus:border-[#2f5f93] focus:outline-none focus:ring-4 focus:ring-[#2f5f93]/20"
 					value={activeUserId}
-					onChange={(event) => onUserChange(event.target.value)}
+					onChange={(event) => {
+						setActiveUserId(event.target.value)
+						const selected = users.find((user) => String(user.id) === event.target.value)
+						if (selected && setSelectedUser) {
+							setSelectedUser(selected)
+						}
+					}}
 				>
-					<option value="all">All Users (Aggregated)</option>
 					{users.map((user) => (
-						<option key={user.id} value={user.id}>
+						<option key={user.id} value={String(user.id)}>
 							{user.name}
 						</option>
 					))}
