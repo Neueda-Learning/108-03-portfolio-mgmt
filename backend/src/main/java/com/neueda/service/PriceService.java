@@ -3,6 +3,7 @@ package com.neueda.service;
 import com.neueda.dto.CachedPriceDataResponse;
 import com.neueda.dto.PriceResponse;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -21,8 +22,8 @@ public class PriceService {
 
     private final RestClient client;
 
-    public PriceService(RestClient priceApiRestClient) {
-        this.client = priceApiRestClient;
+    public PriceService(@Qualifier("priceApiRestClient") RestClient client) {
+        this.client = client;
     }
 
     public PriceResponse getPrice(String ticker) {
