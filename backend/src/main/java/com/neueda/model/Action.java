@@ -1,7 +1,7 @@
 package com.neueda.model;
 
-public record action(
-        int action_id,
+public record Action(
+        int actionId,
         String name
 ) {
 }
