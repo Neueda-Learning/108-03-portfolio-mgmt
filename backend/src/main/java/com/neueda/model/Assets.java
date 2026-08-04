@@ -1,7 +1,11 @@
 package com.neueda.model;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Table;
+
+@Table("assets")
 public record Assets(
-        int assetId,
+        @Id int assetId,
         String name,
         int typeId
 ) {
