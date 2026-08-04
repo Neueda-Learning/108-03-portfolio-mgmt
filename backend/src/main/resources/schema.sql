@@ -28,9 +28,45 @@ CREATE TABLE IF NOT EXISTS holdings (
     asset_id INT NOT NULL,
     quantity DECIMAL(10, 2) NOT NULL,
     action_id INT NOT NULL,
-    price_bought DECIMAL(10, 2) NOT NULL,
-    date_bought DATE NOT NULL,
+    price_per_unit DECIMAL(10, 2) NOT NULL,
+    transaction_date DATE NOT NULL,
     FOREIGN KEY (action_id) REFERENCES actions(action_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id),
     FOREIGN KEY (asset_id) REFERENCES assets(asset_id)
 );
+
+INSERT INTO actions (name)
+SELECT 'BUY'
+WHERE NOT EXISTS (SELECT 1 FROM actions WHERE name = 'BUY');
+
+INSERT INTO actions (name)
+SELECT 'SELL'
+WHERE NOT EXISTS (SELECT 1 FROM actions WHERE name = 'SELL');
+
+INSERT INTO users (firstname, lastname, email)
+SELECT 'PRANAV', '', 'pranavmenon@2019'
+WHERE NOT EXISTS (SELECT 1 FROM users WHERE email = 'pranavmenon@2019');
+
+INSERT INTO users (firstname, lastname, email)
+SELECT 'ANUSHKA', '', 'anushka@2019'
+WHERE NOT EXISTS (SELECT 1 FROM users WHERE email = 'anushka@2019');
+
+INSERT INTO users (firstname, lastname, email)
+SELECT 'SHASHANK', '', 'shashank@2019'
+WHERE NOT EXISTS (SELECT 1 FROM users WHERE email = 'shashank@2019');
+
+INSERT INTO users (firstname, lastname, email)
+SELECT 'SRUTHI', '', 'sruthi@2019'
+WHERE NOT EXISTS (SELECT 1 FROM users WHERE email = 'sruthi@2019');
+
+INSERT INTO types (name)
+SELECT 'STOCK'
+WHERE NOT EXISTS (SELECT 1 FROM types WHERE name = 'STOCK');
+
+INSERT INTO types (name)
+SELECT 'BOND'
+WHERE NOT EXISTS (SELECT 1 FROM types WHERE name = 'BOND');
+
+INSERT INTO types (name)
+SELECT 'MUTUAL FUND'
+WHERE NOT EXISTS (SELECT 1 FROM types WHERE name = 'MUTUAL FUND');
