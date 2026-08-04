@@ -2,7 +2,7 @@ import React from 'react';
 
 const Settings = () => {
   return (
-    <div>
+    <div className="text-3xl font-bold text-gray-800">
       settings
     </div>
   )
