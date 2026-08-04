@@ -7,9 +7,6 @@ const titleByPath = {
 	'/': 'Dashboard',
 	'/holdings': 'Holdings',
 	'/performance': 'Performance',
-	'/add-asset': 'Add Asset',
-	'/transactions': 'Transactions',
-	'/reports': 'Reports',
 	'/settings': 'Settings',
 }
 
@@ -19,7 +16,7 @@ function Layout() {
 	const pageTitle = useMemo(() => titleByPath[location.pathname] || 'Dashboard', [location.pathname])
 
   return (
-		<div className="min-h-screen bg-slate-50">
+		<div className="min-h-screen bg-slate-50 dark:bg-slate-950">
 			<Sidebar />
 
 			<div className="ml-64 min-h-screen max-[980px]:ml-0">
