@@ -86,6 +86,7 @@ function Holdings() {
   }
 
   return (
+
     <div className="space-y-6">
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <h2 className="text-2xl font-bold text-slate-900">Holdings</h2>
@@ -121,6 +122,8 @@ function Holdings() {
         onClose={() => setSelectedHolding(null)}
         onConfirm={handleDeleteConfirm}
       />
+
+
     </div>
   )
 }
