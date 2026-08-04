@@ -2,7 +2,7 @@ function HoldingRow({ holding, onDelete }) {
 	const formatCurrency = (value) => {
 		const numeric = Number(value)
 		if (Number.isNaN(numeric)) return value ?? '-'
-		return `$${numeric.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+		return `₹${numeric.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`
 	}
 
 	const formatNumber = (value) => {

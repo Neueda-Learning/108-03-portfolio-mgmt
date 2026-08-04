@@ -9,6 +9,16 @@ XAxis,
 YAxis,
 } from 'recharts'
 
+const formatCurrency = (value) => {
+const numeric = Number(value)
+if (Number.isNaN(numeric)) return value
+return new Intl.NumberFormat('en-IN', {
+style: 'currency',
+currency: 'INR',
+maximumFractionDigits: 0,
+}).format(numeric)
+}
+
 function PortfolioChart({ chartData = [] }) {
 const data = useMemo(() => {
 return chartData
@@ -39,10 +49,10 @@ axisLine={{ stroke: '#cbd5e1' }}
 tick={{ fill: '#64748b', fontSize: 12 }}
 tickLine={false}
 axisLine={{ stroke: '#cbd5e1' }}
-tickFormatter={(value) => `$${Number(value).toLocaleString()}`}
+tickFormatter={(value) => formatCurrency(value)}
 />
 <Tooltip
-formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Portfolio Value']}
+formatter={(value) => [formatCurrency(value), 'Portfolio Value']}
 labelFormatter={(label) => `Date: ${label}`}
 contentStyle={{
 borderRadius: '12px',
