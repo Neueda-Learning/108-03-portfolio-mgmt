@@ -28,8 +28,8 @@ CREATE TABLE IF NOT EXISTS holdings (
     asset_id INT NOT NULL,
     quantity DECIMAL(10, 2) NOT NULL,
     action_id INT NOT NULL,
-    price_bought DECIMAL(10, 2) NOT NULL,
-    date_bought DATE NOT NULL,
+    price_per_unit DECIMAL(10, 2) NOT NULL,
+    transaction_date DATE NOT NULL,
     FOREIGN KEY (action_id) REFERENCES actions(action_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id),
     FOREIGN KEY (asset_id) REFERENCES assets(asset_id)
