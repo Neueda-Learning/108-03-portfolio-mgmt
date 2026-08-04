@@ -6,17 +6,10 @@ function getTodayDate() {
 
 function AddAsset({
 	isOpen,
-	isopen,
 	onClose,
-	onclose,
 	onSubmit,
-	onsubit,
 	assetOptions = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN'],
 }) {
-	const open = isOpen ?? isopen ?? false
-	const closeHandler = onClose ?? onclose ?? (() => {})
-	const submitHandler = onSubmit ?? onsubit
-
 	const [form, setForm] = useState({
 		asset: assetOptions[0] ?? '',
 		action: 'buy',
@@ -26,29 +19,29 @@ function AddAsset({
 	})
 
 	useEffect(() => {
-		if (!open) return
+		if (!isOpen) return
 
 		setForm((prev) => ({
 			...prev,
 			asset: assetOptions[0] ?? prev.asset,
 			purchaseDate: prev.purchaseDate || getTodayDate(),
 		}))
-	}, [open, assetOptions])
+	}, [isOpen, assetOptions])
 
 	useEffect(() => {
-		if (!open) return
+		if (!isOpen) return
 
 		const onEsc = (event) => {
 			if (event.key === 'Escape') {
-				closeHandler()
+				onClose?.()
 			}
 		}
 
 		document.addEventListener('keydown', onEsc)
 		return () => document.removeEventListener('keydown', onEsc)
-	}, [open, closeHandler])
+	}, [isOpen, onClose])
 
-	if (!open) return null
+	if (!isOpen) return null
 
 	const updateField = (key, value) => {
 		setForm((prev) => ({ ...prev, [key]: value }))
@@ -65,9 +58,7 @@ function AddAsset({
 			purchaseDate: form.purchaseDate,
 		}
 
-		if (typeof submitHandler === 'function') {
-			submitHandler(payload)
-		}
+		onSubmit?.(payload)
 	}
 
 	return (
@@ -77,7 +68,7 @@ function AddAsset({
 					<h3 className="text-lg font-semibold text-slate-900">Add Asset</h3>
 					<button
 						type="button"
-						onClick={closeHandler}
+						onClick={onClose}
 						className="rounded-md px-2 py-1 text-sm font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
 					>
 						Close
@@ -158,7 +149,7 @@ function AddAsset({
 					<div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
 						<button
 							type="button"
-							onClick={closeHandler}
+							onClick={onClose}
 							className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
 						>
 							Cancel
