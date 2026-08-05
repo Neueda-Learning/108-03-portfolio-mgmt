@@ -31,6 +31,11 @@ public class HoldingsController {
         return holdingsService.getAllHoldings();
     }
 
+    @GetMapping("/user/{userId}")
+    public List<Holdings> getHoldingsByUserId(@PathVariable int userId) {
+        return holdingsService.getHoldingsByUserId(userId);
+    }
+
     @GetMapping("/{id}")
     public Holdings getHoldingById(@PathVariable int id) {
         return holdingsService.getHoldingById(id);
