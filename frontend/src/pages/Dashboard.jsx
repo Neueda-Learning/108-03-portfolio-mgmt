@@ -1,5 +1,5 @@
 import { useContext, useEffect, useMemo, useState } from 'react'
-import { FiBarChart2, FiDollarSign, FiPieChart, FiTrendingUp } from 'react-icons/fi'
+import { FiBarChart2, FiDollarSign, FiPieChart, FiTrendingUp, FiPercent } from 'react-icons/fi'
 import UserContext from '../context/UserContext'
 import AddAsset from '../dashboard/AddAsset'
 import AssetAllocationChart from '../dashboard/AssetAllocation'
@@ -65,19 +65,10 @@ function Dashboard() {
     const summaryCards = useMemo(() => {
         const t = portfolioResponse?.totals
 
-        if (!t) {
-            return [
-                { title: 'Invested', value: formatINR(0), change: '', isPositive: true, icon: FiPieChart },
-                { title: 'Current Value', value: formatINR(0), change: '', isPositive: true, icon: FiDollarSign },
-                { title: 'Profit / Loss', value: formatINR(0), change: '', isPositive: true, icon: FiTrendingUp },
-                { title: 'Profit/Loss %', value: '0.00%', change: '', isPositive: true, icon: FiBarChart2 },
-            ]
-        }
-
-        const invested = Number(t.invested ?? 0)
-        const currentValue = Number(t.currentValue ?? 0)
-        const profitLoss = Number(t.profitLoss ?? 0)
-        const profitLossPercentage = Number(t.profitLossPercentage ?? 0)
+        const invested = Number(t?.invested ?? 0)
+        const currentValue = Number(t?.currentValue ?? 0)
+        const profitLoss = Number(t?.profitLoss ?? 0)
+        const profitLossPercentage = Number(t?.profitLossPercentage ?? 0)
 
         return [
             {
@@ -85,28 +76,28 @@ function Dashboard() {
                 value: formatINR(invested),
                 change: '',
                 isPositive: true,
-                icon: FiPieChart,
+                icon: FiPieChart,      // appropriate for allocation/investment base
             },
             {
                 title: 'Current Value',
                 value: formatINR(currentValue),
                 change: '',
                 isPositive: currentValue >= invested,
-                icon: FiDollarSign,
+                icon: FiDollarSign,    // value/money
             },
             {
                 title: 'Profit / Loss',
                 value: formatINR(profitLoss),
                 change: '',
                 isPositive: profitLoss >= 0,
-                icon: FiTrendingUp,
+                icon: FiTrendingUp,    // gain/loss trend
             },
             {
                 title: 'Profit/Loss %',
                 value: formatPercent(profitLossPercentage),
                 change: '',
                 isPositive: profitLossPercentage >= 0,
-                icon: FiBarChart2,
+                icon: FiPercent,       // percentage metric
             },
         ]
     }, [portfolioResponse?.totals])
