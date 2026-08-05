@@ -10,88 +10,147 @@ import { getPortfolioDataForUser } from '../data/portfolioData'
 import { getPortfolio } from '../services/portfolioService'
 
 const summaryIconByKey = {
-  value: FiDollarSign,
-  gain: FiTrendingUp,
-  allocation: FiPieChart,
-  return: FiBarChart2,
+    value: FiDollarSign,
+    gain: FiTrendingUp,
+    allocation: FiPieChart,
+    return: FiBarChart2,
 }
 
+const formatINR = (value) =>
+    new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        maximumFractionDigits: 0,
+    }).format(Number(value ?? 0))
+
+const formatPercent = (value) => `${Number(value ?? 0).toFixed(2)}%`
+
 function Dashboard() {
-  const { selectedUser } = useContext(UserContext)
-  const [isAddAssetOpen, setIsAddAssetOpen] = useState(false)
-  const [portfolioResponse, setPortfolioResponse] = useState(null)
+    const { selectedUser } = useContext(UserContext)
+    const [isAddAssetOpen, setIsAddAssetOpen] = useState(false)
+    const [portfolioResponse, setPortfolioResponse] = useState(null)
 
-  const userPortfolio = useMemo(() => {
-    return getPortfolioDataForUser(selectedUser?.id)
-  }, [selectedUser?.id])
+    const activeUserId = selectedUser?.id ?? selectedUser?.userId ?? null
 
-  useEffect(() => {
-    const loadPortfolio = async () => {
-      if (!selectedUser?.id) {
-        setPortfolioResponse(null)
-        return
-      }
+    const userPortfolio = useMemo(() => {
+        return getPortfolioDataForUser(activeUserId)
+    }, [activeUserId])
 
-      try {
-        const data = await getPortfolio(selectedUser.id)
-        setPortfolioResponse(data)
-      } catch (error) {
-        console.error('Failed to load portfolio:', error)
-        setPortfolioResponse(null)
-      }
+    useEffect(() => {
+        let ignore = false
+
+        const loadPortfolio = async () => {
+            if (!activeUserId) {
+                setPortfolioResponse(null)
+                return
+            }
+
+            try {
+                const data = await getPortfolio(activeUserId)
+                if (!ignore) setPortfolioResponse(data)
+            } catch (error) {
+                if (!ignore) {
+                    console.error('Failed to load portfolio:', error)
+                    setPortfolioResponse(null)
+                }
+            }
+        }
+
+        loadPortfolio()
+        return () => {
+            ignore = true
+        }
+    }, [activeUserId])
+
+    const summaryCards = useMemo(() => {
+        const t = portfolioResponse?.totals
+
+        if (!t) {
+            return [
+                { title: 'Invested', value: formatINR(0), change: '', isPositive: true, icon: FiPieChart },
+                { title: 'Current Value', value: formatINR(0), change: '', isPositive: true, icon: FiDollarSign },
+                { title: 'Profit / Loss', value: formatINR(0), change: '', isPositive: true, icon: FiTrendingUp },
+                { title: 'Profit/Loss %', value: '0.00%', change: '', isPositive: true, icon: FiBarChart2 },
+            ]
+        }
+
+        const invested = Number(t.invested ?? 0)
+        const currentValue = Number(t.currentValue ?? 0)
+        const profitLoss = Number(t.profitLoss ?? 0)
+        const profitLossPercentage = Number(t.profitLossPercentage ?? 0)
+
+        return [
+            {
+                title: 'Invested',
+                value: formatINR(invested),
+                change: '',
+                isPositive: true,
+                icon: FiPieChart,
+            },
+            {
+                title: 'Current Value',
+                value: formatINR(currentValue),
+                change: '',
+                isPositive: currentValue >= invested,
+                icon: FiDollarSign,
+            },
+            {
+                title: 'Profit / Loss',
+                value: formatINR(profitLoss),
+                change: '',
+                isPositive: profitLoss >= 0,
+                icon: FiTrendingUp,
+            },
+            {
+                title: 'Profit/Loss %',
+                value: formatPercent(profitLossPercentage),
+                change: '',
+                isPositive: profitLossPercentage >= 0,
+                icon: FiBarChart2,
+            },
+        ]
+    }, [portfolioResponse?.totals])
+
+    const allocationData = useMemo(() => {
+        const assets = portfolioResponse?.assets
+        if (!Array.isArray(assets) || assets.length === 0) return userPortfolio.allocationData
+
+        return assets.map((a) => ({
+            name: a.assetName,
+            value: Number(a.percentageInvested) || 0,
+        }))
+    }, [portfolioResponse?.assets, userPortfolio.allocationData])
+
+    const handleAddAssetSubmit = (payload) => {
+        console.log('Add asset payload:', payload)
+        setIsAddAssetOpen(false)
     }
 
-    loadPortfolio()
-  }, [selectedUser?.id])
+    return (
+        <>
+            <div className="space-y-6">
+                <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    {summaryCards.map((card) => (
+                        <SummaryCard key={card.title} {...card} />
+                    ))}
+                </section>
 
-  const summaryCards = useMemo(() => {
-    return userPortfolio.summaryCards.map((card) => ({
-      ...card,
-      icon: summaryIconByKey[card.iconKey] || FiDollarSign,
-    }))
-  }, [userPortfolio.summaryCards])
+                <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+                    <PortfolioChart chartData={userPortfolio.performanceData} />
+                    <AssetAllocationChart data={allocationData} />
+                </section>
 
-  // Convert API assets -> chart format expected by AssetAllocationChart
-  const allocationData = useMemo(() => {
-    const assets = portfolioResponse?.assets
-    if (!Array.isArray(assets)) return userPortfolio.allocationData
+                <TopHoldings data={userPortfolio.holdingsData} onAddAsset={() => setIsAddAssetOpen(true)} />
+            </div>
 
-    return assets.map((a) => ({
-      name: a.assetName,
-      value: Number(a.percentageInvested) || 0,
-    }))
-  }, [portfolioResponse?.assets, userPortfolio.allocationData])
-
-  const handleAddAssetSubmit = (payload) => {
-    console.log('Add asset payload:', payload)
-    setIsAddAssetOpen(false)
-  }
-
-  return (
-    <>
-      <div className="space-y-6">
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {summaryCards.map((card) => (
-            <SummaryCard key={card.title} {...card} />
-          ))}
-        </section>
-
-        <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-          <PortfolioChart chartData={userPortfolio.performanceData} />
-          <AssetAllocationChart data={allocationData} />
-        </section>
-
-        <TopHoldings data={userPortfolio.holdingsData} onAddAsset={() => setIsAddAssetOpen(true)} />
-      </div>
-
-      <AddAsset
-        isOpen={isAddAssetOpen}
-        onClose={() => setIsAddAssetOpen(false)}
-        onSubmit={handleAddAssetSubmit}
-        assetOptions={['AAPL', 'NVDA', 'GLD', 'TLT', 'MSFT']}
-      />
-    </>
-  )
+            <AddAsset
+                isOpen={isAddAssetOpen}
+                onClose={() => setIsAddAssetOpen(false)}
+                onSubmit={handleAddAssetSubmit}
+                assetOptions={['AAPL', 'NVDA', 'GLD', 'TLT', 'MSFT']}
+            />
+        </>
+    )
 }
 
 export default Dashboard
