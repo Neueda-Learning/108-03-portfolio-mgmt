@@ -123,3 +123,51 @@ WHERE u.email = 'pranavmenon@2019'
         AND h.quantity = 5.00
         AND h.price_per_unit = 180.00
   );
+
+INSERT INTO holdings (user_id, asset_id, quantity, action_id, price_per_unit, transaction_date)
+SELECT u.user_id, a.asset_id, 10.00, ac.action_id, 180.00, CURRENT_DATE
+FROM users u
+JOIN assets a ON a.name = 'MSFT'
+JOIN actions ac ON ac.name = 'BUY'
+WHERE u.email = 'pranavmenon@2019'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM holdings h
+      WHERE h.user_id = u.user_id
+        AND h.asset_id = a.asset_id
+        AND h.action_id = ac.action_id
+        AND h.quantity = 10.00
+        AND h.price_per_unit = 180.00
+  );
+
+  INSERT INTO holdings (user_id, asset_id, quantity, action_id, price_per_unit, transaction_date)
+  SELECT u.user_id, a.asset_id, 10.00, ac.action_id, 180.00, CURRENT_DATE
+  FROM users u
+  JOIN assets a ON a.name = 'MSFT'
+  JOIN actions ac ON ac.name = 'BUY'
+  WHERE u.email = 'pranavmenon@2019'
+    AND NOT EXISTS (
+        SELECT 1
+        FROM holdings h
+        WHERE h.user_id = u.user_id
+          AND h.asset_id = a.asset_id
+          AND h.action_id = ac.action_id
+          AND h.quantity = 20.00
+          AND h.price_per_unit = 180.00
+    );
+
+      INSERT INTO holdings (user_id, asset_id, quantity, action_id, price_per_unit, transaction_date)
+      SELECT u.user_id, a.asset_id, 10.00, ac.action_id, 180.00, CURRENT_DATE
+      FROM users u
+      JOIN assets a ON a.name = 'INTC'
+      JOIN actions ac ON ac.name = 'BUY'
+      WHERE u.email = 'pranavmenon@2019'
+        AND NOT EXISTS (
+            SELECT 1
+            FROM holdings h
+            WHERE h.user_id = u.user_id
+              AND h.asset_id = a.asset_id
+              AND h.action_id = ac.action_id
+              AND h.quantity = 20.00
+              AND h.price_per_unit = 180.00
+        );
