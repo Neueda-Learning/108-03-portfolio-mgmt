@@ -8,6 +8,7 @@ import SummaryCard from '../dashboard/SummaryCard'
 import TopHoldings from '../dashboard/TopHoldings'
 import { getPortfolioDataForUser } from '../data/portfolioData'
 import { getPortfolio } from '../services/portfolioService'
+import { getAssets } from '../services/assetService'
 
 const summaryIconByKey = {
     value: FiDollarSign,
@@ -29,6 +30,8 @@ function Dashboard() {
     const { selectedUser } = useContext(UserContext)
     const [isAddAssetOpen, setIsAddAssetOpen] = useState(false)
     const [portfolioResponse, setPortfolioResponse] = useState(null)
+    const [assetOptions, setAssetOptions] = useState([])
+    const [reloadKey, setReloadKey] = useState(0)
 
     const activeUserId = selectedUser?.id ?? selectedUser?.userId ?? null
 
@@ -60,7 +63,20 @@ function Dashboard() {
         return () => {
             ignore = true
         }
-    }, [activeUserId])
+    }, [activeUserId, reloadKey])
+
+    useEffect(() => {
+        const loadAssets = async () => {
+            try {
+                const data = await getAssets()
+                setAssetOptions(data) // [{ assetId, name, typeId }]
+            } catch (error) {
+                console.error('Failed to load assets:', error)
+                setAssetOptions([])
+            }
+        }
+        loadAssets()
+    }, [])
 
     const summaryCards = useMemo(() => {
         const t = portfolioResponse?.totals
@@ -113,7 +129,8 @@ function Dashboard() {
     }, [portfolioResponse?.assets, userPortfolio.allocationData])
 
     const handleAddAssetSubmit = (payload) => {
-        console.log('Add asset payload:', payload)
+        console.log('Add asset payload:', payload) 
+        // payload now includes assetId (number), assetName, typeId
         setIsAddAssetOpen(false)
     }
 
@@ -137,8 +154,8 @@ function Dashboard() {
             <AddAsset
                 isOpen={isAddAssetOpen}
                 onClose={() => setIsAddAssetOpen(false)}
-                onSubmit={handleAddAssetSubmit}
-                assetOptions={['AAPL', 'NVDA', 'GLD', 'TLT', 'MSFT']}
+                onSuccesss={() => setReloadKey((v) => v + 1)}
+                assetOptions={assetOptions}
             />
         </>
     )
