@@ -4,14 +4,10 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class PriceServiceTest {
+class PriceServiceV2Test {
 
     @Test
     void getPrice() {
 
-    }
-
-    @Test
-    void testGetPrice() {
     }
 }
