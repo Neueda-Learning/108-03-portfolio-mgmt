@@ -10,13 +10,6 @@ import { getPortfolioDataForUser } from '../data/portfolioData'
 import { getPortfolio } from '../services/portfolioService'
 import { getAssets } from '../services/assetService'
 
-const summaryIconByKey = {
-    value: FiDollarSign,
-    gain: FiTrendingUp,
-    allocation: FiPieChart,
-    return: FiBarChart2,
-}
-
 const formatINR = (value) =>
     new Intl.NumberFormat('en-IN', {
         style: 'currency',
@@ -69,7 +62,7 @@ function Dashboard() {
         const loadAssets = async () => {
             try {
                 const data = await getAssets()
-                setAssetOptions(data) // [{ assetId, name, typeId }]
+                setAssetOptions(data)
             } catch (error) {
                 console.error('Failed to load assets:', error)
                 setAssetOptions([])
@@ -92,28 +85,28 @@ function Dashboard() {
                 value: formatINR(invested),
                 change: '',
                 isPositive: true,
-                icon: FiPieChart,      // appropriate for allocation/investment base
+                icon: FiPieChart,
             },
             {
                 title: 'Current Value',
                 value: formatINR(currentValue),
                 change: '',
                 isPositive: currentValue >= invested,
-                icon: FiDollarSign,    // value/money
+                icon: FiDollarSign,
             },
             {
                 title: 'Profit / Loss',
                 value: formatINR(profitLoss),
                 change: '',
                 isPositive: profitLoss >= 0,
-                icon: FiTrendingUp,    // gain/loss trend
+                icon: FiTrendingUp,
             },
             {
                 title: 'Profit/Loss %',
                 value: formatPercent(profitLossPercentage),
                 change: '',
                 isPositive: profitLossPercentage >= 0,
-                icon: FiPercent,       // percentage metric
+                icon: FiPercent,
             },
         ]
     }, [portfolioResponse?.totals])
@@ -127,12 +120,6 @@ function Dashboard() {
             value: Number(a.percentageInvested) || 0,
         }))
     }, [portfolioResponse?.assets, userPortfolio.allocationData])
-
-    const handleAddAssetSubmit = (payload) => {
-        console.log('Add asset payload:', payload) 
-        // payload now includes assetId (number), assetName, typeId
-        setIsAddAssetOpen(false)
-    }
 
     return (
         <>

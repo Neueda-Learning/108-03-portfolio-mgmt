@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from 'react'
 import UserContext from '../context/UserContext'
-import { createHolding } from '../services/holdingService.js'
+import { createHolding, updateHolding } from '../services/holdingService.js'
 
 function getTodayDate() {
 	return new Date().toISOString().split('T')[0]
@@ -9,10 +9,11 @@ function getTodayDate() {
 function AddAsset({
 	isOpen,
 	onClose,
-	onSubmit, // kept for compatibility
+	onSubmit,
 	onSuccess,
-	onSuccesss, // as requested
+	onSuccesss,
 	assetOptions = [],
+	initialData = null,
 }) {
 	const { selectedUser } = useContext(UserContext)
 	const [isSubmitting, setIsSubmitting] = useState(false)
@@ -25,15 +26,34 @@ function AddAsset({
 		purchaseDate: getTodayDate(),
 	})
 
+	const isEditMode = Boolean(initialData?.holdingId)
+
 	useEffect(() => {
 		if (!isOpen) return
 
-		setForm((prev) => ({
-			...prev,
-			assetId: assetOptions[0]?.assetId ?? prev.assetId,
-			purchaseDate: prev.purchaseDate || getTodayDate(),
-		}))
-	}, [isOpen, assetOptions])
+		if (initialData) {
+			setForm({
+				assetId: String(initialData.assetId ?? ''),
+				quantity: String(initialData.quantity ?? ''),
+				buyPrice: String(initialData.pricePerUnit ?? ''),
+				action:
+					Number(initialData.actionId) === 2 ||
+					String(initialData.action || '').toLowerCase() === 'sell'
+						? 'sell'
+						: 'buy',
+				purchaseDate: (initialData.transactionDate || getTodayDate()).slice(0, 10),
+			})
+			return
+		}
+
+		setForm({
+			assetId: '',
+			quantity: '',
+			buyPrice: '',
+			action: 'buy',
+			purchaseDate: getTodayDate(),
+		})
+	}, [isOpen, initialData])
 
 	useEffect(() => {
 		if (!isOpen) return
@@ -69,37 +89,33 @@ function AddAsset({
 			return
 		}
 
-		if (quantity <= 0 || pricePerUnit <= 0) {
-			window.alert('Quantity and price must be greater than 0.')
-			return
-		}
-
 		const payload = {
-			holdingId: 0,
+			holdingId: isEditMode ? Number(initialData.holdingId) : 0,
 			assetId,
 			quantity,
 			userId: Number(userId),
-			actionId, // BUY=1, SELL=2
+			actionId,
 			pricePerUnit,
 			transactionDate,
 		}
 
 		try {
 			setIsSubmitting(true)
-			await createHolding(payload)
 
-			// optional compatibility callback
+			if (isEditMode) {
+				await updateHolding(Number(initialData.holdingId), payload)
+				window.alert('Holding updated successfully.')
+			} else {
+				await createHolding(payload)
+				window.alert('Asset added successfully.')
+			}
+
 			if (onSubmit) await onSubmit(payload)
-
-			window.alert('Asset added successfully.')
 			onClose?.()
 			onSuccesss?.()
 			onSuccess?.()
 		} catch (error) {
-			const message =
-				error?.response?.data?.message ||
-				error?.message ||
-				'Failed to add asset.'
+			const message = error?.response?.data?.message || error?.message || 'Request failed.'
 			window.alert(message)
 		} finally {
 			setIsSubmitting(false)
