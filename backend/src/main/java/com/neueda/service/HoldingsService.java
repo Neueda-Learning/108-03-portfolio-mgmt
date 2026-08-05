@@ -24,6 +24,10 @@ public class HoldingsService {
 				.toList();
 	}
 
+	public List<Holdings> getHoldingsByUserId(int userId) {
+		return holdingsRepository.findByUserId(userId);
+	}
+
 	public Holdings getHoldingById(int id) {
 		return holdingsRepository.findById(id)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Holding not found: " + id));
