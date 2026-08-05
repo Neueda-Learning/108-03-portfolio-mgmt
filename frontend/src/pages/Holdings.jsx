@@ -1,67 +1,41 @@
-import { useMemo, useState } from 'react'
+import { useContext, useEffect, useMemo, useState } from 'react'
+import UserContext from '../context/UserContext'
 import DeleteHoldingDialog from '../holdings/DeleteHoldingDialog'
 import HoldingsTable from '../holdings/HoldingsTable'
-
-const dummyHoldings = [
-  {
-    id: 1,
-    asset: 'Apple Inc.',
-    type: 'Equity',
-    quantity: 35,
-    buyPrice: 172.5,
-    currentPrice: 191.4,
-    marketValue: 6699,
-    profitLoss: 661.5,
-    purchaseDate: '2026-03-02',
-  },
-  {
-    id: 2,
-    asset: 'NVIDIA',
-    type: 'Equity',
-    quantity: 14,
-    buyPrice: 845,
-    currentPrice: 915.6,
-    marketValue: 12818.4,
-    profitLoss: 988.4,
-    purchaseDate: '2026-02-10',
-  },
-  {
-    id: 3,
-    asset: 'Gold ETF',
-    type: 'Commodity',
-    quantity: 58,
-    buyPrice: 53.8,
-    currentPrice: 52.1,
-    marketValue: 3021.8,
-    profitLoss: -98.6,
-    purchaseDate: '2026-01-18',
-  },
-  {
-    id: 4,
-    asset: 'US Treasury Fund',
-    type: 'Debt',
-    quantity: 120,
-    buyPrice: 26.7,
-    currentPrice: 27.3,
-    marketValue: 3276,
-    profitLoss: 72,
-    purchaseDate: '2025-12-29',
-  },
-  {
-    id: 5,
-    asset: 'Ethereum',
-    type: 'Crypto',
-    quantity: 2.5,
-    buyPrice: 2950,
-    currentPrice: 3210,
-    marketValue: 8025,
-    profitLoss: 650,
-    purchaseDate: '2026-04-07',
-  },
-]
+import { getPortfolio } from '../services/portfolioService'
 
 function Holdings() {
-  const [holdings, setHoldings] = useState(dummyHoldings)
+  const { selectedUser } = useContext(UserContext)
+  const [holdings, setHoldings] = useState([])
+  const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    if (!selectedUser?.id) return
+
+    setIsLoading(true)
+    getPortfolio(selectedUser.id)
+      .then((data) => {
+        const positions = Array.isArray(data?.positions) ? data.positions : []
+        setHoldings(
+          positions.map((p, index) => ({
+            id: index,
+            asset: p.assetName,
+            type: p.type,
+            quantity: p.totalQuantity,
+            buyPrice: p.totalQuantity > 0 ? p.totalInvested / p.totalQuantity : 0,
+            currentPrice: p.totalQuantity > 0 ? p.currentValue / p.totalQuantity : 0,
+            marketValue: p.currentValue,
+            profitLoss: p.profitLoss,
+            purchaseDate: null,
+          }))
+        )
+      })
+      .catch((err) => {
+        console.error('Failed to load portfolio', err)
+        setHoldings([])
+      })
+      .finally(() => setIsLoading(false))
+  }, [selectedUser?.id])
   const [searchTerm, setSearchTerm] = useState('')
   const [assetType, setAssetType] = useState('All')
   const [selectedHolding, setSelectedHolding] = useState(null)
@@ -115,7 +89,11 @@ function Holdings() {
         </div>
       </section>
 
-      <HoldingsTable data={filteredHoldings} onDelete={(holding) => setSelectedHolding(holding)} />
+      <HoldingsTable
+        data={isLoading ? [] : filteredHoldings}
+        isLoading={isLoading}
+        onDelete={(holding) => setSelectedHolding(holding)}
+      />
 
       <DeleteHoldingDialog
         isOpen={Boolean(selectedHolding)}

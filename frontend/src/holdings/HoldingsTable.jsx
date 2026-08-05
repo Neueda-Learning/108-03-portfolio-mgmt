@@ -1,6 +1,6 @@
 import HoldingRow from './HoldingRow'
 
-function HoldingsTable({ data = [], onDelete }) {
+function HoldingsTable({ data = [], onDelete, isLoading = false }) {
 
 	return (
 		<section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
@@ -39,7 +39,13 @@ function HoldingsTable({ data = [], onDelete }) {
 					</thead>
 
 					<tbody>
-						{data.length === 0 ? (
+						{isLoading ? (
+							<tr>
+								<td colSpan={9} className="px-3 py-8 text-center text-sm text-slate-500">
+									Loading holdings...
+								</td>
+							</tr>
+						) : data.length === 0 ? (
 							<tr>
 								<td colSpan={9} className="px-3 py-8 text-center text-sm text-slate-500">
 									No holdings found.
