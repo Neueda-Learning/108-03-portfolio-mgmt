@@ -277,11 +277,11 @@ WHERE u.email = 'pranavmenon@2019'
         AND h.action_id = ac.action_id
         AND h.quantity = 4.00
         AND h.price_per_unit = 45.00
-        AND h.transaction_date = '2026-09-28'
+        AND h.transaction_date = '2026-07-28'
   );
 
 INSERT INTO holdings (user_id, asset_id, quantity, action_id, price_per_unit, transaction_date)
-SELECT u.user_id, a.asset_id, 4.00, ac.action_id, 40.00, '2026-07-28'
+SELECT u.user_id, a.asset_id, 4.00, ac.action_id, 40.00, '2026-05-28'
 FROM users u
 JOIN assets a ON a.name = 'INTC'
 JOIN actions ac ON ac.name = 'BUY'
