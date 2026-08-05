@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+
 function TopHoldings({ data = [], onAddAsset }) {
   const formatCurrency = (value) => {
     const numeric = Number(value);
@@ -10,6 +12,16 @@ function TopHoldings({ data = [], onAddAsset }) {
     if (Number.isNaN(numeric)) return value;
     return numeric.toLocaleString();
   };
+
+  const topHoldings = useMemo(() => {
+    if (!Array.isArray(data)) return [];
+    return [...data]
+      .sort(
+        (a, b) =>
+          Number(b?.marketValue ?? 0) - Number(a?.marketValue ?? 0)
+      )
+      .slice(0, 5);
+  }, [data]);
 
   return (
     <section className="w-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
@@ -52,7 +64,7 @@ function TopHoldings({ data = [], onAddAsset }) {
             </tr>
           </thead>
           <tbody>
-            {data.length === 0 ? (
+            {topHoldings.length === 0 ? (
               <tr>
                 <td
                   colSpan={7}
@@ -62,7 +74,7 @@ function TopHoldings({ data = [], onAddAsset }) {
                 </td>
               </tr>
             ) : (
-              data.map((item, index) => {
+              topHoldings.map((item, index) => {
                 const pl = Number(item.profitLoss);
                 const plClass = Number.isNaN(pl)
                   ? "text-slate-700"

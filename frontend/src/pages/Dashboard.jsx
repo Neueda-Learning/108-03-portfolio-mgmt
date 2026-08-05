@@ -121,6 +121,39 @@ function Dashboard() {
         }))
     }, [portfolioResponse?.assets, userPortfolio.allocationData])
 
+    const topHoldingsData = useMemo(() => {
+        const apiPositions = Array.isArray(portfolioResponse?.positions) ? portfolioResponse.positions : []
+
+        if (apiPositions.length > 0) {
+            return apiPositions
+                .map((p) => {
+                    const quantity = Number(p?.totalQuantity ?? 0)
+                    const marketValue = Number(p?.currentValue ?? 0)
+                    const totalInvested = Number(p?.totalInvested ?? 0)
+
+                    const currentPrice = quantity > 0 ? marketValue / quantity : 0
+                    const buyPrice = quantity > 0 ? totalInvested / quantity : 0
+
+                    return {
+                        asset: p?.assetName ?? '-',
+                        type: p?.type ?? '-',
+                        quantity,
+                        buyPrice,
+                        currentPrice,
+                        marketValue,
+                        profitLoss: Number(p?.profitLoss ?? 0),
+                    }
+                })
+                .sort((a, b) => b.marketValue - a.marketValue)
+                .slice(0, 5)
+        }
+
+        const existing = Array.isArray(userPortfolio?.holdingsData) ? [...userPortfolio.holdingsData] : []
+        return existing
+            .sort((a, b) => Number(b?.marketValue ?? 0) - Number(a?.marketValue ?? 0))
+            .slice(0, 5)
+    }, [portfolioResponse?.positions, userPortfolio?.holdingsData])
+
     return (
         <>
             <div className="space-y-6">
@@ -135,7 +168,7 @@ function Dashboard() {
                     <AssetAllocationChart data={allocationData} />
                 </section>
 
-                <TopHoldings data={userPortfolio.holdingsData} onAddAsset={() => setIsAddAssetOpen(true)} />
+                <TopHoldings data={topHoldingsData} onAddAsset={() => setIsAddAssetOpen(true)} />
             </div>
 
             <AddAsset
