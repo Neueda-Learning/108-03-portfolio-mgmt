@@ -19,7 +19,7 @@ maximumFractionDigits: 0,
 }).format(numeric)
 }
 
-function PortfolioChart({ chartData = [] }) {
+function PortfolioChart({ chartData = [], xAxisTicks }) {
 const data = useMemo(() => {
 return chartData
 .map((point) => ({
@@ -44,6 +44,8 @@ dataKey="date"
 tick={{ fill: '#64748b', fontSize: 12 }}
 tickLine={false}
 axisLine={{ stroke: '#cbd5e1' }}
+ticks={xAxisTicks}
+interval={xAxisTicks ? 0 : 'preserveStartEnd'}
 />
 <YAxis
 tick={{ fill: '#64748b', fontSize: 12 }}

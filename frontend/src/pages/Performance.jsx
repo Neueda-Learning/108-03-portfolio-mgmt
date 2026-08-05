@@ -48,28 +48,113 @@ const toMonthlySeries = (points) => {
     .sort((a, b) => a.date - b.date)
 }
 
-const buildDailySeries = (monthlySeries, days) => {
+const buildYearSeries = (monthlySeries) => {
+  if (!monthlySeries.length) {
+    return []
+  }
+
+  const first = monthlySeries[0]
+  const latest = monthlySeries[monthlySeries.length - 1]
+  const year = latest.date.getFullYear()
+
+  const valueDeltas = []
+  const investedDeltas = []
+  for (let index = 1; index < monthlySeries.length; index += 1) {
+    valueDeltas.push(monthlySeries[index].value - monthlySeries[index - 1].value)
+    investedDeltas.push(monthlySeries[index].invested - monthlySeries[index - 1].invested)
+  }
+
+  const avgValueDelta = valueDeltas.length
+    ? valueDeltas.reduce((total, current) => total + current, 0) / valueDeltas.length
+    : 0
+  const avgInvestedDelta = investedDeltas.length
+    ? investedDeltas.reduce((total, current) => total + current, 0) / investedDeltas.length
+    : 0
+
+  const seriesByMonth = new Map(monthlySeries.map((point) => [point.date.getMonth(), point]))
+  const yearSeries = []
+
+  for (let month = 0; month < 12; month += 1) {
+    const existing = seriesByMonth.get(month)
+    if (existing) {
+      yearSeries.push(existing)
+      continue
+    }
+
+    const prevPoint = yearSeries[yearSeries.length - 1] || first
+    const projected = {
+      date: new Date(year, month, 1),
+      value: round(prevPoint.value + avgValueDelta),
+      invested: round(prevPoint.invested + avgInvestedDelta),
+      allocation: latest.allocation,
+    }
+
+    yearSeries.push(projected)
+  }
+
+  return yearSeries
+}
+
+const buildWeeklySeries = (monthlySeries) => {
   if (!monthlySeries.length) {
     return []
   }
 
   const latest = monthlySeries[monthlySeries.length - 1]
   const previous = monthlySeries[Math.max(monthlySeries.length - 2, 0)] || latest
-  const latestDate = new Date()
   const valueSlope = (latest.value - previous.value) / 30
   const investedSlope = (latest.invested - previous.invested) / 30
 
-  return Array.from({ length: days }, (_, index) => {
-    const offset = days - 1 - index
-    const date = addDays(latestDate, -offset)
+  // Find Monday of the current week
+  const today = new Date()
+  const dayOfWeek = today.getDay() // 0=Sun, 1=Mon ... 6=Sat
+  const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+  const monday = addDays(today, -daysToMonday)
+
+  // Project value back to Monday
+  const mondayValue = latest.value - valueSlope * daysToMonday
+  const mondayInvested = latest.invested - investedSlope * daysToMonday
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = addDays(monday, index)
     const wave = Math.sin(index / 2.2) * Math.max(8, Math.abs(valueSlope) * 0.8)
-    const value = latest.value - valueSlope * offset + wave
-    const invested = latest.invested - investedSlope * offset
 
     return {
       date,
-      value: round(value),
-      invested: round(invested),
+      value: round(mondayValue + valueSlope * index + wave),
+      invested: round(mondayInvested + investedSlope * index),
+      allocation: latest.allocation,
+    }
+  })
+}
+
+const buildMonthSeries = (monthlySeries) => {
+  if (!monthlySeries.length) {
+    return []
+  }
+
+  const latest = monthlySeries[monthlySeries.length - 1]
+  const previous = monthlySeries[Math.max(monthlySeries.length - 2, 0)] || latest
+  const valueSlope = (latest.value - previous.value) / 30
+  const investedSlope = (latest.invested - previous.invested) / 30
+
+  const today = new Date()
+  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()
+  const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+  const daysFromFirst = today.getDate() - 1
+
+  // Project value back to the 1st of the month
+  const firstValue = latest.value - valueSlope * daysFromFirst
+  const firstInvested = latest.invested - investedSlope * daysFromFirst
+
+  return Array.from({ length: daysInMonth }, (_, index) => {
+    const date = addDays(firstOfMonth, index)
+    const wave = Math.sin(index / 2.2) * Math.max(8, Math.abs(valueSlope) * 0.8)
+
+    return {
+      date,
+      value: round(firstValue + valueSlope * index + wave),
+      invested: round(firstInvested + investedSlope * index),
       allocation: latest.allocation,
     }
   })
@@ -81,7 +166,7 @@ const formatLabel = (date, range) => {
   }
 
   if (range === '1M') {
-    return date.toLocaleDateString('en-US', { day: '2-digit', month: 'short' })
+    return date.toLocaleDateString('en-US', { day: 'numeric' })
   }
 
   return date.toLocaleDateString('en-US', { month: 'short' })
@@ -104,15 +189,33 @@ const Performance = () => {
 
   const filteredHistory = useMemo(() => {
     if (selectedRange === '1W') {
-      return buildDailySeries(monthlySeries, 7)
+      return buildWeeklySeries(monthlySeries)
     }
 
     if (selectedRange === '1M') {
-      return buildDailySeries(monthlySeries, 30)
+      return buildMonthSeries(monthlySeries)
     }
 
-    return monthlySeries.slice(-12)
+    return buildYearSeries(monthlySeries)
   }, [monthlySeries, selectedRange])
+
+  const xAxisTicks = useMemo(() => {
+    if (selectedRange !== '1M') {
+      return undefined
+    }
+
+    const tickDays = new Set([1, 5, 10, 15, 20, 25])
+    const ticks = filteredHistory
+      .filter((point, index) => {
+        const day = point.date.getDate()
+        const monthLastDay = new Date(point.date.getFullYear(), point.date.getMonth() + 1, 0).getDate()
+        const isLastPoint = index === filteredHistory.length - 1
+        return tickDays.has(day) || day === monthLastDay || isLastPoint
+      })
+      .map((point) => formatLabel(point.date, '1M'))
+
+    return [...new Set(ticks)]
+  }, [filteredHistory, selectedRange])
 
   const chartData = useMemo(() => {
     return filteredHistory.map((point) => ({
@@ -222,7 +325,7 @@ const Performance = () => {
         {isUpdating ? (
           <div className="h-[340px] animate-pulse rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900" />
         ) : (
-          <PortfolioChart chartData={chartData} />
+          <PortfolioChart chartData={chartData} xAxisTicks={xAxisTicks} />
         )}
 
         {isUpdating ? (
