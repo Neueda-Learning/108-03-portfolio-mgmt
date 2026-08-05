@@ -1,5 +1,5 @@
 import { useContext, useEffect, useMemo, useState } from 'react'
-import { FiBarChart2, FiDollarSign, FiPieChart, FiTrendingUp, FiPercent } from 'react-icons/fi'
+import { FiBarChart2, FiDollarSign, FiPieChart, FiTrendingUp, FiPercent, FiAlertTriangle, FiCheckCircle } from 'react-icons/fi'
 import UserContext from '../context/UserContext'
 import AddAsset from '../dashboard/AddAsset'
 import AssetAllocationChart from '../dashboard/AssetAllocation'
@@ -18,6 +18,27 @@ const formatINR = (value) =>
     }).format(Number(value ?? 0))
 
 const formatPercent = (value) => `${Number(value ?? 0).toFixed(2)}%`
+
+const ALLOCATION_THRESHOLDS = {
+    STOCK: 60,
+    CRYPTO: 15,
+    GOLD: 20,
+    BOND: 30,
+    CASH: 10,
+}
+
+const ASSET_TYPE_ALIASES = {
+    STOCKS: 'STOCK',
+    EQUITY: 'STOCK',
+    CRYPTOCURRENCY: 'CRYPTO',
+}
+
+const normalizeAssetType = (value) =>
+    String(value ?? '')
+        .trim()
+        .toUpperCase()
+        .replace(/\./g, '')
+        .replace(/\s+/g, ' ')
 
 function Dashboard() {
     const { selectedUser } = useContext(UserContext)
@@ -154,6 +175,29 @@ function Dashboard() {
             .slice(0, 5)
     }, [portfolioResponse?.positions, userPortfolio?.holdingsData])
 
+    const allocationAlerts = useMemo(() => {
+        const assets = Array.isArray(portfolioResponse?.assets) ? portfolioResponse.assets : []
+
+        return assets
+            .map((item) => {
+                const rawType = item?.assetName ?? item?.name
+                const normalized = normalizeAssetType(rawType)
+                const thresholdKey = ASSET_TYPE_ALIASES[normalized] ?? normalized
+                const threshold = ALLOCATION_THRESHOLDS[thresholdKey]
+                const current = Number(item?.percentageInvested ?? item?.value ?? 0)
+
+                if (threshold == null || Number.isNaN(current)) return null
+                if (current <= threshold) return null
+
+                return {
+                    assetType: rawType,
+                    current,
+                    threshold,
+                }
+            })
+            .filter(Boolean)
+    }, [portfolioResponse?.assets])
+
     return (
         <>
             <div className="space-y-6">
@@ -166,6 +210,36 @@ function Dashboard() {
                 <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.15fr_0.85fr]">
                     <PortfolioChart chartData={userPortfolio.performanceData} />
                     <AssetAllocationChart data={allocationData} />
+                </section>
+
+                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                    <div className="mb-3 flex items-center gap-2">
+                        <FiAlertTriangle className="text-amber-500" />
+                        <h3 className="text-sm font-semibold text-slate-800">Allocation Threshold Alerts</h3>
+                    </div>
+
+                    {allocationAlerts.length > 0 ? (
+                        <div className="space-y-3">
+                            {allocationAlerts.map((alert, index) => (
+                                <div
+                                    key={`${alert.assetType}-${index}`}
+                                    className="rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-3 text-amber-900"
+                                >
+                                    <p className="text-sm leading-6">
+                                        <span className="font-semibold">⚠ {alert.assetType}</span>{' '}
+                                        is at <span className="font-semibold">{alert.current.toFixed(2)}%</span>
+                                        {' '}vs threshold <span className="font-semibold">{alert.threshold}%</span>.
+                                    </p>
+                                    <p className="mt-1 text-xs text-amber-800">Recommendation: diversify allocation.</p>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50 px-4 py-3 text-emerald-900">
+                            <FiCheckCircle className="text-emerald-600" />
+                            <span className="text-sm font-medium">Portlofio is well diversifyd</span>
+                        </div>
+                    )}
                 </section>
 
                 <TopHoldings data={topHoldingsData} onAddAsset={() => setIsAddAssetOpen(true)} />
