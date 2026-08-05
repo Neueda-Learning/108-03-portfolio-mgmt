@@ -1,9 +1,13 @@
 package com.neueda.model;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Table;
+
+@Table("users")
 public record User(
-        int userId,
-        String firstName,
-        String lastName,
+        @Id int userId,
+        String firstname,
+        String lastname,
         String email
 ) {
 }
