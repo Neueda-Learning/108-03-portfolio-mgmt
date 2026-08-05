@@ -8,15 +8,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.neueda.model.Holdings;
+import com.neueda.repository.ActionRepository;
 import com.neueda.repository.HoldingRepository;
 
 @Service
 public class HoldingsService {
 
 	private final HoldingRepository holdingsRepository;
+	private final ActionRepository actionRepository;
 
-	public HoldingsService(HoldingRepository holdingsRepository) {
+	public HoldingsService(HoldingRepository holdingsRepository, ActionRepository actionRepository) {
 		this.holdingsRepository = holdingsRepository;
+		this.actionRepository = actionRepository;
 	}
 
 	public List<Holdings> getAllHoldings() {
@@ -34,6 +37,39 @@ public class HoldingsService {
 	}
 
 	public Holdings createHolding(Holdings request) {
+		// Check if this action is a SELL
+		actionRepository.findById(request.actionId()).ifPresent(action -> {
+			if ("SELL".equalsIgnoreCase(action.name())) {
+				// Calculate net owned quantity for this user + asset
+				List<Holdings> existing = holdingsRepository.findByUserIdAndAssetId(request.userId(), request.assetId());
+
+				// Resolve BUY and SELL action IDs
+				java.util.Map<String, Integer> actionIdByName = StreamSupport
+						.stream(actionRepository.findAll().spliterator(), false)
+						.collect(java.util.stream.Collectors.toMap(
+								a -> a.name().toUpperCase(),
+								a -> a.actionId()));
+
+				int buyId  = actionIdByName.getOrDefault("BUY", -1);
+				int sellId = actionIdByName.getOrDefault("SELL", -1);
+
+				double netQuantity = existing.stream()
+						.mapToDouble(h -> {
+							if (h.actionId() == buyId)  return h.quantity();
+							if (h.actionId() == sellId) return -h.quantity();
+							return 0;
+						})
+						.sum();
+
+				if (request.quantity() > netQuantity) {
+					throw new ResponseStatusException(
+							HttpStatus.BAD_REQUEST,
+							"Cannot sell " + request.quantity() + " units of asset " + request.assetId()
+									+ ". Current available quantity: " + netQuantity);
+				}
+			}
+		});
+
 		Holdings toCreate = new Holdings(
 				0,
 				request.userId(),
