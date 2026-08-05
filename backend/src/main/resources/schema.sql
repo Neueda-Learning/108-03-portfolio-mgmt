@@ -193,3 +193,73 @@ WHERE u.email = 'pranavmenon@2019'
                   AND h.quantity = 20.00
                   AND h.price_per_unit = 180.00
             );
+
+-- Additional dated holdings for time-series testing
+INSERT INTO holdings (user_id, asset_id, quantity, action_id, price_per_unit, transaction_date)
+SELECT u.user_id, a.asset_id, 8.00, ac.action_id, 170.00, '2026-07-01'
+FROM users u
+JOIN assets a ON a.name = 'AAPL'
+JOIN actions ac ON ac.name = 'BUY'
+WHERE u.email = 'pranavmenon@2019'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM holdings h
+      WHERE h.user_id = u.user_id
+        AND h.asset_id = a.asset_id
+        AND h.action_id = ac.action_id
+        AND h.quantity = 8.00
+        AND h.price_per_unit = 170.00
+        AND h.transaction_date = '2026-07-01'
+  );
+
+INSERT INTO holdings (user_id, asset_id, quantity, action_id, price_per_unit, transaction_date)
+SELECT u.user_id, a.asset_id, 3.00, ac.action_id, 175.00, '2026-07-10'
+FROM users u
+JOIN assets a ON a.name = 'AAPL'
+JOIN actions ac ON ac.name = 'SELL'
+WHERE u.email = 'pranavmenon@2019'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM holdings h
+      WHERE h.user_id = u.user_id
+        AND h.asset_id = a.asset_id
+        AND h.action_id = ac.action_id
+        AND h.quantity = 3.00
+        AND h.price_per_unit = 175.00
+        AND h.transaction_date = '2026-07-10'
+  );
+
+INSERT INTO holdings (user_id, asset_id, quantity, action_id, price_per_unit, transaction_date)
+SELECT u.user_id, a.asset_id, 6.00, ac.action_id, 320.00, '2026-07-20'
+FROM users u
+JOIN assets a ON a.name = 'MSFT'
+JOIN actions ac ON ac.name = 'BUY'
+WHERE u.email = 'pranavmenon@2019'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM holdings h
+      WHERE h.user_id = u.user_id
+        AND h.asset_id = a.asset_id
+        AND h.action_id = ac.action_id
+        AND h.quantity = 6.00
+        AND h.price_per_unit = 320.00
+        AND h.transaction_date = '2026-07-20'
+  );
+
+INSERT INTO holdings (user_id, asset_id, quantity, action_id, price_per_unit, transaction_date)
+SELECT u.user_id, a.asset_id, 4.00, ac.action_id, 45.00, '2026-07-28'
+FROM users u
+JOIN assets a ON a.name = 'INTC'
+JOIN actions ac ON ac.name = 'BUY'
+WHERE u.email = 'pranavmenon@2019'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM holdings h
+      WHERE h.user_id = u.user_id
+        AND h.asset_id = a.asset_id
+        AND h.action_id = ac.action_id
+        AND h.quantity = 4.00
+        AND h.price_per_unit = 45.00
+        AND h.transaction_date = '2026-07-28'
+  );
+
