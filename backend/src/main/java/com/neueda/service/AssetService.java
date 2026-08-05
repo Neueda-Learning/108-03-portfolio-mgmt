@@ -8,15 +8,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.neueda.model.Assets;
+import com.neueda.repository.AssetTypeRepository;
 import com.neueda.repository.AssetRepository;
 
 @Service
 public class AssetService {
 
 	private final AssetRepository assetRepository;
+	private final AssetTypeRepository typeRepository;
 
-	public AssetService(AssetRepository assetRepository) {
+	public AssetService(AssetRepository assetRepository, AssetTypeRepository typeRepository) {
 		this.assetRepository = assetRepository;
+		this.typeRepository = typeRepository;
 	}
 
 	public List<Assets> getAllAssets() {
@@ -30,6 +33,9 @@ public class AssetService {
 	}
 
 	public Assets createAsset(Assets request) {
+		if (!typeRepository.existsById(request.typeId())) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Type not found: " + request.typeId());
+		}
 		Assets toCreate = new Assets(0, request.name(), request.typeId());
 		return assetRepository.save(toCreate);
 	}

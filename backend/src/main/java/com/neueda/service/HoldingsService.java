@@ -40,6 +40,12 @@ public class HoldingsService {
 		// Check if this action is a SELL
 		actionRepository.findById(request.actionId()).ifPresent(action -> {
 			if ("SELL".equalsIgnoreCase(action.name())) {
+				if (request.quantity() <= 0) {
+					throw new ResponseStatusException(
+							HttpStatus.BAD_REQUEST,
+							"Cannot sell " + request.quantity() + " units. Quantity must be greater than zero.");
+				}
+
 				// Calculate net owned quantity for this user + asset
 				List<Holdings> existing = holdingsRepository.findByUserIdAndAssetId(request.userId(), request.assetId());
 
