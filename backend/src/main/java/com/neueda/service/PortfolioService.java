@@ -22,7 +22,7 @@ public class PortfolioService {
 //    TODO: Patch this in when ready userService userService;
 //    TODO: Patch this in when ready holdingsService holdingsService;
 //    TODO: BUY SELLACTION IMPLEMENTATION
-    private final PriceService priceService;
+    private final PriceServiceV2 priceService;
     private final UserService userService;
     private final HoldingsService holdingsService;
     private final AssetService assetService;
@@ -30,7 +30,7 @@ public class PortfolioService {
     private final int BUY_ACTION = 1;
     private final int SELL_ACTION = 2;
 
-    public PortfolioService(PriceService priceService,
+    public PortfolioService(PriceServiceV2 priceService,
                             UserService userService,
                             HoldingsService holdingsService,
                             AssetService assetService,
