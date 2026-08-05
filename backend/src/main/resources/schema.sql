@@ -70,3 +70,56 @@ WHERE NOT EXISTS (SELECT 1 FROM types WHERE name = 'BOND');
 INSERT INTO types (name)
 SELECT 'MUTUAL FUND'
 WHERE NOT EXISTS (SELECT 1 FROM types WHERE name = 'MUTUAL FUND');
+
+
+-- Seed stock assets for portfolio testing
+INSERT INTO assets (name, type_id)
+SELECT 'AAPL', t.type_id
+FROM types t
+WHERE t.name = 'STOCK'
+  AND NOT EXISTS (SELECT 1 FROM assets WHERE name = 'AAPL');
+
+INSERT INTO assets (name, type_id)
+SELECT 'MSFT', t.type_id
+FROM types t
+WHERE t.name = 'STOCK'
+  AND NOT EXISTS (SELECT 1 FROM assets WHERE name = 'MSFT');
+
+INSERT INTO assets (name, type_id)
+SELECT 'INTC', t.type_id
+FROM types t
+WHERE t.name = 'STOCK'
+  AND NOT EXISTS (SELECT 1 FROM assets WHERE name = 'INTC');
+
+-- Seed one BUY holding for PRANAV in AAPL for startup testing
+INSERT INTO holdings (user_id, asset_id, quantity, action_id, price_per_unit, transaction_date)
+SELECT u.user_id, a.asset_id, 10.00, ac.action_id, 180.00, CURRENT_DATE
+FROM users u
+JOIN assets a ON a.name = 'AAPL'
+JOIN actions ac ON ac.name = 'BUY'
+WHERE u.email = 'pranavmenon@2019'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM holdings h
+      WHERE h.user_id = u.user_id
+        AND h.asset_id = a.asset_id
+        AND h.action_id = ac.action_id
+        AND h.quantity = 10.00
+        AND h.price_per_unit = 180.00
+  );
+
+INSERT INTO holdings (user_id, asset_id, quantity, action_id, price_per_unit, transaction_date)
+SELECT u.user_id, a.asset_id, 5.00, ac.action_id, 180.00, CURRENT_DATE
+FROM users u
+JOIN assets a ON a.name = 'AAPL'
+JOIN actions ac ON ac.name = 'SELL'
+WHERE u.email = 'pranavmenon@2019'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM holdings h
+      WHERE h.user_id = u.user_id
+        AND h.asset_id = a.asset_id
+        AND h.action_id = ac.action_id
+        AND h.quantity = 5.00
+        AND h.price_per_unit = 180.00
+  );

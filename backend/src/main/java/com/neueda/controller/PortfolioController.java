@@ -18,6 +18,6 @@ public class PortfolioController {
 
     @GetMapping("/{accountId}")
     public PortfolioResponse getPortfolio(@PathVariable String accountId) {
-        return portfolioService.getPortfolio(accountId);
+        return portfolioService.getPortfolio(Integer.parseInt(accountId));
     }
 }

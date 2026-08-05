@@ -3,8 +3,9 @@ package com.neueda.service;
 import com.neueda.dto.PortfolioResponse;
 import com.neueda.dto.PositionAsset;
 import com.neueda.dto.Totals;
-import com.neueda.model.holdings;
-import com.neueda.model.users;
+import com.neueda.model.Assets;
+import com.neueda.model.Holdings;
+import com.neueda.model.User;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -20,35 +21,45 @@ public class PortfolioService {
 //    TODO: Patch this in when ready holdingsService holdingsService;
 //    TODO: BUY SELLACTION IMPLEMENTATION
     private final PriceService priceService;
+    private final UserService userService;
+    private final HoldingsService holdingsService;
+    private final AssetService assetService;
     private final int BUY_ACTION = 1;
     private final int SELL_ACTION = 2;
 
-    public PortfolioService(PriceService priceService) {
+    public PortfolioService(PriceService priceService,
+                            UserService userService,
+                            HoldingsService holdingsService,
+                            AssetService assetService) {
         this.priceService = priceService;
+        this.userService = userService;
+        this.holdingsService = holdingsService;
+        this.assetService = assetService;
     }
 
 
-    public PortfolioResponse getPortfolio(String accountId) {
+    public PortfolioResponse getPortfolio(int accountId) {
 //        TODO: user user = userService.getUserByAccountId(accountId);
 //        TODO: userHoldings = holdingsService.getHoldingsByAccountId(accountId);
-        users user = new users(1, "John Doe", "", "");
-        List<holdings> userHoldings = new ArrayList<>();
+        User user = userService.getUserById(accountId);
+        List<Holdings> userHoldings = holdingsService.getAllHoldings();
         HashMap<Integer, PositionAsset> positions = new HashMap<>();
 
-        for (holdings holding : userHoldings) {
-            int asset_id = holding.asset_id();
+        for (Holdings holding : userHoldings) {
+            int asset_id = holding.assetId();
+            Assets asset = assetService.getAssetById(asset_id);
             float qty = holding.quantity();
-            float cost = holding.quantity() * holding.price_bought();
+            BigDecimal cost = holding.pricePerUnit().multiply(BigDecimal.valueOf(holding.quantity()));
 
             // Flip sign for SELL
-            if (holding.action_id() == SELL_ACTION) { // 2 = SELL
+            if (holding.actionId() == SELL_ACTION) { // 2 = SELL
                 qty  = -qty;
-                cost = -cost;
+                cost = cost.negate();
             }
 
             if (positions.containsKey(asset_id)) {
                 BigDecimal totalInvested = positions.get(asset_id).totalInvested()
-                        .add(BigDecimal.valueOf(cost));
+                        .add(cost);
                 int totalQuantity = positions.get(asset_id).totalQuantity() + (int) qty;
                 positions.put(asset_id, new PositionAsset(
                         "Asset Name Placeholder",
@@ -61,7 +72,7 @@ public class PortfolioService {
                 positions.put(asset_id, new PositionAsset(
                         "Asset Name Placeholder",
                         (int) qty,
-                        BigDecimal.valueOf(cost),
+                        cost,
                         BigDecimal.ZERO,
                         BigDecimal.ZERO, BigDecimal.ZERO
                 ));
@@ -112,4 +123,3 @@ public class PortfolioService {
         );
     }
 }
-
