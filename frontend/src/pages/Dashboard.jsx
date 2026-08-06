@@ -3,12 +3,13 @@ import { FiBarChart2, FiDollarSign, FiPieChart, FiTrendingUp, FiPercent, FiAlert
 import UserContext from '../context/UserContext'
 import AddAsset from '../dashboard/AddAsset'
 import AssetAllocationChart from '../dashboard/AssetAllocation'
-import PortfolioChart from '../dashboard/PortfolioChart'
-import SummaryCard from '../dashboard/SummaryCard'
-import TopHoldings from '../dashboard/TopHoldings'
+import PortfolioRecommendation from '../dashboard/PortfolioRecommendation'
 import { getPortfolioDataForUser } from '../data/portfolioData'
 import { getPortfolio } from '../services/portfolioService'
 import { getAssets } from '../services/assetService'
+import { getInsights } from '../services/insightService'
+import SummaryCard from '../dashboard/SummaryCard'
+import TopHoldings from '../dashboard/TopHoldings'
 
 const formatINR = (value) =>
     new Intl.NumberFormat('en-IN', {
@@ -46,6 +47,8 @@ function Dashboard() {
     const [portfolioResponse, setPortfolioResponse] = useState(null)
     const [assetOptions, setAssetOptions] = useState([])
     const [reloadKey, setReloadKey] = useState(0)
+    const [insights, setInsights] = useState(null)
+    const [insightsLoading, setInsightsLoading] = useState(false)
 
     const activeUserId = selectedUser?.id ?? selectedUser?.userId ?? null
 
@@ -91,6 +94,39 @@ function Dashboard() {
         }
         loadAssets()
     }, [])
+
+    useEffect(() => {
+        let ignore = false
+
+        const loadInsights = async () => {
+            if (!activeUserId) {
+                setInsights(null)
+                return
+            }
+
+            try {
+                setInsightsLoading(true)
+                const data = await getInsights(activeUserId)
+                if (!ignore) setInsights(data)
+            } catch (error) {
+                if (!ignore) {
+                    console.error('Failed to load insights:', error)
+                    setInsights({ holdingClusters: [] })
+                }
+            } finally {
+                if (!ignore) setInsightsLoading(false)
+            }
+        }
+
+        loadInsights()
+        return () => {
+            ignore = true
+        }
+    }, [activeUserId])
+
+    const recommendationRows = useMemo(() => {
+        return Array.isArray(insights?.holdingClusters) ? insights.holdingClusters : []
+    }, [insights])
 
     const summaryCards = useMemo(() => {
         const t = portfolioResponse?.totals
@@ -207,8 +243,8 @@ function Dashboard() {
                     ))}
                 </section>
 
-                <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-                    <PortfolioChart chartData={userPortfolio.performanceData} />
+                <section className="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-[3fr_2fr]">
+                    <PortfolioRecommendation rows={recommendationRows} isLoading={insightsLoading} />
                     <AssetAllocationChart data={allocationData} />
                 </section>
 
