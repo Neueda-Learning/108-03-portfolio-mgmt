@@ -34,9 +34,9 @@ function Holdings() {
           assets.forEach((a) => { assetIdToName[a.assetId] = a.name })
         }
 
-        // Build assetName → earliest transactionDate and holdingId
+        // Build assetName → earliest transactionDate and ALL holdingIds
         const assetNameToDate = {}
-        const assetNameToHoldingId = {}
+        const assetNameToHoldingIds = {}
         if (Array.isArray(rawHoldings)) {
           rawHoldings.forEach((h) => {
             const name = assetIdToName[h.assetId]
@@ -44,15 +44,16 @@ function Holdings() {
             const existing = assetNameToDate[name]
             if (!existing || h.transactionDate < existing) {
               assetNameToDate[name] = h.transactionDate
-              assetNameToHoldingId[name] = h.holdingId
             }
+            if (!assetNameToHoldingIds[name]) assetNameToHoldingIds[name] = []
+            assetNameToHoldingIds[name].push(h.holdingId)
           })
         }
 
         setHoldings(
           positions.map((p, index) => ({
             id: index,
-            holdingId: assetNameToHoldingId[p.assetName],
+            holdingIds: assetNameToHoldingIds[p.assetName] ?? [],
             asset: p.assetName,
             type: p.type,
             quantity: p.totalQuantity,
@@ -107,16 +108,16 @@ function Holdings() {
   const handleDeleteConfirm = async () => {
     if (!selectedHolding) return
     
-    const holdingId = selectedHolding?.holdingId
+    const holdingIds = selectedHolding?.holdingIds ?? []
     
     // Remove from UI immediately
     setHoldings((prev) => prev.filter((item) => item.id !== selectedHolding.id))
     setSelectedHolding(null)
     
-    // Try to delete from backend (don't wait, let it happen in background)
+    // Delete ALL holdingIds for this asset from backend
     try {
-      if (holdingId) {
-        await deleteHolding(holdingId)
+      if (holdingIds.length > 0) {
+        await Promise.all(holdingIds.map((id) => deleteHolding(id)))
       }
     } catch (err) {
       console.error('Failed to delete holding from database:', err)

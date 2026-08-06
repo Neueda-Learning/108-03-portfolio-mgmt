@@ -5,6 +5,7 @@ import PortfolioChart from '../dashboard/PortfolioChart'
 import PerformanceSummary from '../performance/PerformanceSummary'
 import { getTimechart } from '../services/portfolioService'
 import { getPortfolioDataForUser } from '../data/portfolioData'
+import { getAiInsights } from '../services/aiInsightService'
 
 const RANGE_OPTIONS = ['1M', '1Y']
 const MONTH_INDEX = {
@@ -248,6 +249,20 @@ const Performance = () => {
     return { invested, currentValue, profitLoss, profitLossPct }
   }, [filteredHistory])
 
+  const [aiInsights, setAiInsights] = useState(null)
+  const [aiLoading, setAiLoading] = useState(false)
+
+  useEffect(() => {
+    if (!selectedUser?.id) return
+    let ignore = false
+    setAiLoading(true)
+    getAiInsights(selectedUser.id)
+      .then((data) => { if (!ignore) setAiInsights(data) })
+      .catch(() => { if (!ignore) setAiInsights(null) })
+      .finally(() => { if (!ignore) setAiLoading(false) })
+    return () => { ignore = true }
+  }, [selectedUser?.id])
+
   const handleRangeChange = (range) => {
     if (range === selectedRange) {
       return
@@ -262,48 +277,137 @@ const Performance = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[3fr_2fr]">
+      {/* Left: Performance Analytics title + range + chart */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Performance Analytics</h2>
+            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Track growth and returns by time range.</p>
+          </div>
+          <div className="inline-flex rounded-xl border border-slate-200 bg-slate-100 p-1 dark:border-slate-700 dark:bg-slate-800">
+            {RANGE_OPTIONS.map((range) => {
+              const selected = selectedRange === range
+              return (
+                <button
+                  key={range}
+                  type="button"
+                  onClick={() => handleRangeChange(range)}
+                  className={[
+                    'rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-200 sm:px-4 sm:py-2 sm:text-sm',
+                    selected
+                      ? 'bg-indigo-600 text-white shadow-sm'
+                      : 'text-slate-700 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700',
+                  ].join(' ')}
+                >
+                  {range}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+        <section
+          className={[
+            'transition-opacity duration-200',
+            isUpdating ? 'opacity-60' : 'opacity-100',
+          ].join(' ')}
+        >
+          {isUpdating ? (
+            <div className="h-[340px] animate-pulse rounded-2xl border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800" />
+          ) : (
+            <PortfolioChart chartData={chartData} xAxisTicks={xAxisTicks} />
+          )}
+        </section>
+      </div>
+
+      {/* Right: AI Summary on top + Recommendations below */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 flex flex-col gap-4">
+        {/* AI Summary at top of this box */}
+        <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-4 dark:border-indigo-900 dark:bg-indigo-950">
+          {aiLoading ? (
+            <div className="space-y-2">
+              <div className="h-3 w-1/3 animate-pulse rounded bg-indigo-200" />
+              <div className="h-3 w-full animate-pulse rounded bg-indigo-200" />
+              <div className="h-3 w-3/4 animate-pulse rounded bg-indigo-200" />
+            </div>
+          ) : aiInsights?.summary ? (
+            <>
+              <p className="text-xs font-semibold uppercase tracking-widest text-indigo-500 dark:text-indigo-400">AI Portfolio Summary</p>
+              <p className="mt-2 text-xs leading-relaxed text-slate-800 dark:text-slate-200">{aiInsights.summary}</p>
+              {aiInsights.disclaimer && (
+                <p className="mt-2 text-xs italic text-slate-400 dark:text-slate-500">{aiInsights.disclaimer}</p>
+              )}
+            </>
+          ) : (
+            <p className="text-xs text-slate-500">AI summary unavailable.</p>
+          )}
+        </div>
+
+        {/* Recommendations below summary */}
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Performance Analytics</h2>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Track growth, allocation and returns by time range.</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">Recommendations</p>
+          {aiLoading ? (
+            <div className="mt-4 space-y-3">
+              {[1, 2].map((i) => (
+                <div key={i} className="h-20 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800" />
+              ))}
+            </div>
+          ) : aiInsights?.recommendations?.length > 0 ? (
+            <div className="mt-4 space-y-3">
+              {aiInsights.recommendations
+                .sort((a, b) => a.priority - b.priority)
+                .map((rec, i) => {
+                  const action = String(rec.action ?? '').toUpperCase()
+                  const isBuy = action === 'BUY'
+                  const isSell = action === 'SELL'
+                  const isHold = action === 'HOLD'
+                  // mixed e.g. "BUY|SELL"
+                  const isMixed = !isBuy && !isSell && !isHold
+
+                  const cardClass = isBuy
+                    ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950'
+                    : isSell
+                    ? 'border-rose-200 bg-rose-50 dark:border-rose-800 dark:bg-rose-950'
+                    : isHold
+                    ? 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950'
+                    : 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950'
+
+                  const badgeClass = isBuy
+                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300'
+                    : isSell
+                    ? 'bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-300'
+                    : isHold
+                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300'
+                    : 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+
+                  const textClass = isBuy
+                    ? 'text-emerald-900 dark:text-emerald-200'
+                    : isSell
+                    ? 'text-rose-900 dark:text-rose-200'
+                    : isHold
+                    ? 'text-amber-900 dark:text-amber-200'
+                    : 'text-blue-900 dark:text-blue-200'
+
+                  return (
+                    <div key={i} className={`rounded-xl border p-4 ${cardClass}`}>
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-block rounded-md px-2.5 py-1 text-xs font-bold ${badgeClass}`}>
+                          {rec.action}
+                        </span>
+                        {rec.title && (
+                          <span className={`text-sm font-semibold ${textClass}`}>{rec.title}</span>
+                        )}
+                      </div>
+                      <p className={`mt-2 text-xs leading-relaxed ${textClass}`}>{rec.detail}</p>
+                    </div>
+                  )
+                })}
+            </div>
+          ) : (
+            <p className="mt-4 text-sm text-slate-500">No recommendations available.</p>
+          )}
         </div>
-
-        <div className="inline-flex rounded-xl border border-slate-200 bg-slate-100 p-1 dark:border-slate-700 dark:bg-slate-800">
-          {RANGE_OPTIONS.map((range) => {
-            const selected = selectedRange === range
-
-            return (
-              <button
-                key={range}
-                type="button"
-                onClick={() => handleRangeChange(range)}
-                className={[
-                  'rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-200 sm:px-4 sm:py-2 sm:text-sm',
-                  selected
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-slate-700 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700',
-                ].join(' ')}
-              >
-                {range}
-              </button>
-            )
-          })}
-        </div>
-      </section>
-
-      <section
-        className={[
-          'transition-opacity duration-200',
-          isUpdating ? 'opacity-60' : 'opacity-100',
-        ].join(' ')}
-      >
-        {isUpdating ? (
-          <div className="h-[340px] animate-pulse rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900" />
-        ) : (
-          <PortfolioChart chartData={chartData} xAxisTicks={xAxisTicks} />
-        )}
-      </section>
+      </div>
     </div>
   )
 }
