@@ -2,12 +2,18 @@ import { useContext, useEffect, useMemo, useState } from 'react'
 import UserContext from '../context/UserContext'
 import DeleteHoldingDialog from '../holdings/DeleteHoldingDialog'
 import HoldingsTable from '../holdings/HoldingsTable'
-import { getPortfolio, getHoldingsByUser, getAssets } from '../services/portfolioService'
+import { getPortfolio, getHoldingsByUser } from '../services/portfolioService'
+import AddAsset from '../dashboard/AddAsset'
+import { getAssets } from '../services/assetService'
 
 function Holdings() {
   const { selectedUser } = useContext(UserContext)
   const [holdings, setHoldings] = useState([])
   const [isLoading, setIsLoading] = useState(false)
+  const [isAddAssetOpen, setIsAddAssetOpen] = useState(false)
+  const [editingHolding, setEditingHolding] = useState(null)
+  const [assetOptions, setAssetOptions] = useState([])
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     if (!selectedUser?.id) return
@@ -59,7 +65,20 @@ function Holdings() {
         setHoldings([])
       })
       .finally(() => setIsLoading(false))
-  }, [selectedUser?.id])
+  }, [selectedUser?.id, reloadKey])
+
+  useEffect(() => {
+    const loadAssets = async () => {
+      try {
+        const assets = await getAssets()
+        setAssetOptions(Array.isArray(assets) ? assets : [])
+      } catch {
+        setAssetOptions([])
+      }
+    }
+    loadAssets()
+  }, [])
+
   const [searchTerm, setSearchTerm] = useState('')
   const [assetType, setAssetType] = useState('All')
   const [selectedHolding, setSelectedHolding] = useState(null)
@@ -83,8 +102,19 @@ function Holdings() {
     setSelectedHolding(null)
   }
 
-  return (
+  const handleEditClick = (holding) => {
+    setEditingHolding({
+      holdingId: holding?.holdingId ?? holding?.id,
+      assetId: holding?.assetId,
+      quantity: holding?.quantity,
+      actionId: holding?.actionId,
+      pricePerUnit: holding?.buyPrice ?? holding?.pricePerUnit,
+      transactionDate: holding?.purchaseDate ?? holding?.transactionDate,
+    })
+    setIsAddAssetOpen(true)
+  }
 
+  return (
     <div className="space-y-6">
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <h2 className="text-2xl font-bold text-slate-900">Holdings</h2>
@@ -114,9 +144,10 @@ function Holdings() {
       </section>
 
       <HoldingsTable
-        data={isLoading ? [] : filteredHoldings}
+        holdings={holdings}
         isLoading={isLoading}
-        onDelete={(holding) => setSelectedHolding(holding)}
+        onDelete={handleDeleteConfirm}
+        onEditClick={handleEditClick}
       />
 
       <DeleteHoldingDialog
@@ -125,7 +156,16 @@ function Holdings() {
         onConfirm={handleDeleteConfirm}
       />
 
-
+      <AddAsset
+        isOpen={isAddAssetOpen}
+        onClose={() => {
+          setIsAddAssetOpen(false)
+          setEditingHolding(null)
+        }}
+        initialData={editingHolding}
+        assetOptions={assetOptions}
+        onSuccesss={() => setReloadKey((v) => v + 1)}
+      />
     </div>
   )
 }
