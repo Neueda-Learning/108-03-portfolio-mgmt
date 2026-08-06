@@ -18,33 +18,35 @@ return chartData.reduce((acc, item) => acc + item.value, 0)
 }, [chartData])
 
 return (
-    <section className="w-full h-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 flex flex-col">
+    <section className="w-full h-full xl:h-[420px] rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 flex flex-col">
         <h3 className="text-lg font-semibold text-slate-900">Asset Allocation</h3>
 
-        <div className="mt-4 flex-1 min-h-0 flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                    <Pie
-                        data={chartData}
-                        dataKey="value"
-                        nameKey="name"
-                        innerRadius="58%"
-                        outerRadius="82%"
-                        paddingAngle={2}
-                    >
-                        {chartData.map((entry, index) => (
-                            <Cell key={`${entry.name}-${index}`} fill={DEFAULT_COLORS[index % DEFAULT_COLORS.length]} />
-                        ))}
-                    </Pie>
-                    <Tooltip
-                        formatter={(value) => [value, 'Value']}
-                        contentStyle={{ borderRadius: '12px', borderColor: '#cbd5e1' }}
-                    />
-                </PieChart>
-            </ResponsiveContainer>
+        <div className="mt-3 flex items-center justify-center">
+            <div className="h-[200px] w-full max-w-[260px]">
+                <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                        <Pie
+                            data={chartData}
+                            dataKey="value"
+                            nameKey="name"
+                            innerRadius={58}
+                            outerRadius={88}
+                            paddingAngle={2}
+                        >
+                            {chartData.map((entry, index) => (
+                                <Cell key={`${entry.name}-${index}`} fill={DEFAULT_COLORS[index % DEFAULT_COLORS.length]} />
+                            ))}
+                        </Pie>
+                        <Tooltip
+                            formatter={(value) => [value, 'Value']}
+                            contentStyle={{ borderRadius: '12px', borderColor: '#cbd5e1' }}
+                        />
+                    </PieChart>
+                </ResponsiveContainer>
+            </div>
         </div>
 
-        <div className="space-y-2.5">
+        <div className="mt-4 space-y-2.5 pr-1">
             {chartData.length === 0 ? (
                 <p className="text-sm text-slate-500">No allocation data available.</p>
             ) : (

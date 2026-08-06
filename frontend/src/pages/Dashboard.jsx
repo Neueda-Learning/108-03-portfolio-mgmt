@@ -270,7 +270,7 @@ function Dashboard() {
                     ) : (
                         <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50 px-4 py-3 text-emerald-900">
                             <FiCheckCircle className="text-emerald-600" />
-                            <span className="text-sm font-medium">Portlofio is well diversifyd</span>
+                            <span className="text-sm font-medium">Portfolio is well diversified</span>
                         </div>
                     )}
                 </section>

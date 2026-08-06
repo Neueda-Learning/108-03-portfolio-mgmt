@@ -13,9 +13,7 @@ function HoldingsTable({ holdings = [], isLoading = false, onDelete, onEditClick
 							<th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Type</th>
 							<th className="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">Quantity</th>
 							<th className="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">Buy Price</th>
-							<th className="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">Current Price</th>
-							<th className="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">Market Value</th>
-							<th className="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">P/L</th>
+							<th className="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
 							<th className="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">Edit</th>
 							<th className="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">Delete</th>
 						</tr>
