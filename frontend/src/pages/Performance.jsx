@@ -1,11 +1,12 @@
-import { useContext, useMemo, useState } from 'react'
+import { useContext, useEffect, useMemo, useState } from 'react'
 import UserContext from '../context/UserContext'
 import AssetAllocationChart from '../dashboard/AssetAllocation'
 import PortfolioChart from '../dashboard/PortfolioChart'
 import PerformanceSummary from '../performance/PerformanceSummary'
+import { getTimechart } from '../services/portfolioService'
 import { getPortfolioDataForUser } from '../data/portfolioData'
 
-const RANGE_OPTIONS = ['1W', '1M', '1Y']
+const RANGE_OPTIONS = ['1M', '1Y']
 const MONTH_INDEX = {
   Jan: 0,
   Feb: 1,
@@ -161,10 +162,6 @@ const buildMonthSeries = (monthlySeries) => {
 }
 
 const formatLabel = (date, range) => {
-  if (range === '1W') {
-    return date.toLocaleDateString('en-US', { weekday: 'short' })
-  }
-
   if (range === '1M') {
     return date.toLocaleDateString('en-US', { day: 'numeric' })
   }
@@ -176,28 +173,38 @@ const Performance = () => {
   const { selectedUser } = useContext(UserContext)
   const [selectedRange, setSelectedRange] = useState('1Y')
   const [isUpdating, setIsUpdating] = useState(false)
+  const [timechartData, setTimechartData] = useState([])
 
-  const userPortfolio = useMemo(() => {
-    return getPortfolioDataForUser(selectedUser?.id)
+  useEffect(() => {
+    if (!selectedUser?.id) return
+    getTimechart(selectedUser.id)
+      .then((data) => {
+        const parsed = Array.isArray(data)
+          ? data.map((p) => ({ date: new Date(p.date), value: Number(p.close) || 0 }))
+              .sort((a, b) => a.date - b.date)
+          : []
+        setTimechartData(parsed)
+      })
+      .catch((err) => {
+        console.error('Failed to load timechart', err)
+        setTimechartData([])
+      })
   }, [selectedUser?.id])
 
-  const monthlySeries = useMemo(() => {
-    return toMonthlySeries(userPortfolio.performanceData)
-  }, [userPortfolio.performanceData])
-
-  const fallbackAllocationData = userPortfolio.allocationData
+  const allocationData = getPortfolioDataForUser(selectedUser?.id).allocationData
 
   const filteredHistory = useMemo(() => {
-    if (selectedRange === '1W') {
-      return buildWeeklySeries(monthlySeries)
-    }
+    if (!timechartData.length) return []
+    const today = new Date()
 
     if (selectedRange === '1M') {
-      return buildMonthSeries(monthlySeries)
+      const thirtyDaysAgo = new Date(today)
+      thirtyDaysAgo.setDate(today.getDate() - 30)
+      return timechartData.filter((p) => p.date >= thirtyDaysAgo)
     }
 
-    return buildYearSeries(monthlySeries)
-  }, [monthlySeries, selectedRange])
+    return timechartData
+  }, [timechartData, selectedRange])
 
   const xAxisTicks = useMemo(() => {
     if (selectedRange !== '1M') {
@@ -224,43 +231,21 @@ const Performance = () => {
     }))
   }, [filteredHistory, selectedRange])
 
-  const allocationData = useMemo(() => {
-    const latest = filteredHistory[filteredHistory.length - 1]
-    if (latest?.allocation) {
-      return Object.entries(latest.allocation).map(([name, value]) => ({
-        name,
-        value,
-      }))
-    }
-
-    // Fallback keeps dashboard allocation when range data has no allocation snapshot.
-    return fallbackAllocationData
-  }, [fallbackAllocationData, filteredHistory])
 
   const summary = useMemo(() => {
     const first = filteredHistory[0]
     const last = filteredHistory[filteredHistory.length - 1]
 
     if (!first || !last) {
-      return {
-        invested: 0,
-        currentValue: 0,
-        profitLoss: 0,
-        profitLossPct: 0,
-      }
+      return { invested: 0, currentValue: 0, profitLoss: 0, profitLossPct: 0 }
     }
 
-    const invested = first.invested ?? first.value
-    const currentValue = last.currentValue ?? last.value
+    const invested = first.value
+    const currentValue = last.value
     const profitLoss = currentValue - invested
     const profitLossPct = invested === 0 ? 0 : (profitLoss / invested) * 100
 
-    return {
-      invested,
-      currentValue,
-      profitLoss,
-      profitLossPct,
-    }
+    return { invested, currentValue, profitLoss, profitLossPct }
   }, [filteredHistory])
 
   const handleRangeChange = (range) => {

@@ -2,7 +2,7 @@ import { useContext, useEffect, useMemo, useState } from 'react'
 import UserContext from '../context/UserContext'
 import DeleteHoldingDialog from '../holdings/DeleteHoldingDialog'
 import HoldingsTable from '../holdings/HoldingsTable'
-import { getPortfolio } from '../services/portfolioService'
+import { getPortfolio, getHoldingsByUser, getAssets } from '../services/portfolioService'
 
 function Holdings() {
   const { selectedUser } = useContext(UserContext)
@@ -13,9 +13,33 @@ function Holdings() {
     if (!selectedUser?.id) return
 
     setIsLoading(true)
-    getPortfolio(selectedUser.id)
-      .then((data) => {
-        const positions = Array.isArray(data?.positions) ? data.positions : []
+    Promise.all([
+      getPortfolio(selectedUser.id),
+      getHoldingsByUser(selectedUser.id),
+      getAssets(),
+    ])
+      .then(([portfolioData, rawHoldings, assets]) => {
+        const positions = Array.isArray(portfolioData?.positions) ? portfolioData.positions : []
+
+        // Build assetId → assetName map
+        const assetIdToName = {}
+        if (Array.isArray(assets)) {
+          assets.forEach((a) => { assetIdToName[a.assetId] = a.name })
+        }
+
+        // Build assetName → earliest transactionDate
+        const assetNameToDate = {}
+        if (Array.isArray(rawHoldings)) {
+          rawHoldings.forEach((h) => {
+            const name = assetIdToName[h.assetId]
+            if (!name) return
+            const existing = assetNameToDate[name]
+            if (!existing || h.transactionDate < existing) {
+              assetNameToDate[name] = h.transactionDate
+            }
+          })
+        }
+
         setHoldings(
           positions.map((p, index) => ({
             id: index,
@@ -26,7 +50,7 @@ function Holdings() {
             currentPrice: p.totalQuantity > 0 ? p.currentValue / p.totalQuantity : 0,
             marketValue: p.currentValue,
             profitLoss: p.profitLoss,
-            purchaseDate: null,
+            purchaseDate: assetNameToDate[p.assetName] ?? null,
           }))
         )
       })
