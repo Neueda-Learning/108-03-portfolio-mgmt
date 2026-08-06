@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
+import UserContext from '../context/UserContext'
+import { createHolding, updateHolding } from '../services/holdingService.js'
 
 function getTodayDate() {
 	return new Date().toISOString().split('T')[0]
@@ -8,25 +10,50 @@ function AddAsset({
 	isOpen,
 	onClose,
 	onSubmit,
-	assetOptions = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN'],
+	onSuccess,
+	onSuccesss,
+	assetOptions = [],
+	initialData = null,
 }) {
+	const { selectedUser } = useContext(UserContext)
+	const [isSubmitting, setIsSubmitting] = useState(false)
+
 	const [form, setForm] = useState({
-		asset: assetOptions[0] ?? '',
-		action: 'buy',
+		assetId: '',
 		quantity: '',
 		buyPrice: '',
+		action: 'buy',
 		purchaseDate: getTodayDate(),
 	})
+
+	const isEditMode = Boolean(initialData?.holdingId)
 
 	useEffect(() => {
 		if (!isOpen) return
 
-		setForm((prev) => ({
-			...prev,
-			asset: assetOptions[0] ?? prev.asset,
-			purchaseDate: prev.purchaseDate || getTodayDate(),
-		}))
-	}, [isOpen, assetOptions])
+		if (initialData) {
+			setForm({
+				assetId: String(initialData.assetId ?? ''),
+				quantity: String(initialData.quantity ?? ''),
+				buyPrice: String(initialData.pricePerUnit ?? ''),
+				action:
+					Number(initialData.actionId) === 2 ||
+					String(initialData.action || '').toLowerCase() === 'sell'
+						? 'sell'
+						: 'buy',
+				purchaseDate: (initialData.transactionDate || getTodayDate()).slice(0, 10),
+			})
+			return
+		}
+
+		setForm({
+			assetId: '',
+			quantity: '',
+			buyPrice: '',
+			action: 'buy',
+			purchaseDate: getTodayDate(),
+		})
+	}, [isOpen, initialData])
 
 	useEffect(() => {
 		if (!isOpen) return
@@ -47,18 +74,52 @@ function AddAsset({
 		setForm((prev) => ({ ...prev, [key]: value }))
 	}
 
-	const handleSubmit = (event) => {
+	const handleSubmit = async (event) => {
 		event.preventDefault()
 
-		const payload = {
-			asset: form.asset,
-			action: form.action,
-			quantity: Number(form.quantity),
-			buyPrice: Number(form.buyPrice),
-			purchaseDate: form.purchaseDate,
+		const userId = selectedUser?.id ?? selectedUser?.userId
+		const assetId = Number(form.assetId)
+		const quantity = Number(form.quantity)
+		const pricePerUnit = Number(form.buyPrice)
+		const actionId = form.action === 'buy' ? 1 : 2
+		const transactionDate = form.purchaseDate
+
+		if (!userId || !assetId || !quantity || !pricePerUnit || !transactionDate) {
+			window.alert('Please fill all required fields.')
+			return
 		}
 
-		onSubmit?.(payload)
+		const payload = {
+			holdingId: isEditMode ? Number(initialData.holdingId) : 0,
+			assetId,
+			quantity,
+			userId: Number(userId),
+			actionId,
+			pricePerUnit,
+			transactionDate,
+		}
+
+		try {
+			setIsSubmitting(true)
+
+			if (isEditMode) {
+				await updateHolding(Number(initialData.holdingId), payload)
+				window.alert('Holding updated successfully.')
+			} else {
+				await createHolding(payload)
+				window.alert('Asset added successfully.')
+			}
+
+			if (onSubmit) await onSubmit(payload)
+			onClose?.()
+			onSuccesss?.()
+			onSuccess?.()
+		} catch (error) {
+			const message = error?.response?.data?.message || error?.message || 'Request failed.'
+			window.alert(message)
+		} finally {
+			setIsSubmitting(false)
+		}
 	}
 
 	return (
@@ -80,14 +141,17 @@ function AddAsset({
 						<label className="flex flex-col gap-1.5">
 							<span className="text-sm font-medium text-slate-700">Asset</span>
 							<select
-								value={form.asset}
-								onChange={(e) => updateField('asset', e.target.value)}
+								value={form.assetId}
+								onChange={(e) => setForm((prev) => ({ ...prev, assetId: e.target.value }))}
 								className="rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
 								required
 							>
+								<option value="" disabled>
+									Select asset
+								</option>
 								{assetOptions.map((asset) => (
-									<option key={asset} value={asset}>
-										{asset}
+									<option key={asset.assetId} value={asset.assetId}>
+										{asset.name}
 									</option>
 								))}
 							</select>
@@ -157,6 +221,7 @@ function AddAsset({
 						<button
 							type="submit"
 							className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300"
+							disabled={isSubmitting}
 						>
 							Save
 						</button>
