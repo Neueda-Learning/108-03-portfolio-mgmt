@@ -1,76 +1,30 @@
 import { useContext, useEffect, useMemo, useState } from 'react'
 import UserContext from '../context/UserContext'
-import DeleteHoldingDialog from '../holdings/DeleteHoldingDialog'
 import HoldingsTable from '../holdings/HoldingsTable'
-import { getPortfolio, getHoldingsByUser } from '../services/portfolioService'
-import AddAsset from '../dashboard/AddAsset'
-import { getAssets } from '../services/assetService'
-import { deleteHolding } from '../services/holdingService'
+import { getHoldingsByUser, deleteHolding } from '../services/holdingService'
+import { getAssets, getAssetById } from '../services/assetService'
+import EditHoldingModal from '../holdings/EditHoldingModal'
+
+const ASSET_TYPE_BY_ID = {
+    1: 'STOCK',
+    2: 'BOND',
+    3: 'GOLD',
+    4: 'BOND',
+    5: 'CASH',
+}
 
 function Holdings() {
   const { selectedUser } = useContext(UserContext)
   const [holdings, setHoldings] = useState([])
   const [isLoading, setIsLoading] = useState(false)
-  const [isAddAssetOpen, setIsAddAssetOpen] = useState(false)
-  const [editingHolding, setEditingHolding] = useState(null)
   const [assetOptions, setAssetOptions] = useState([])
   const [reloadKey, setReloadKey] = useState(0)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [editingHolding, setEditingHolding] = useState(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [assetType, setAssetType] = useState('All')
 
-  useEffect(() => {
-    if (!selectedUser?.id) return
-
-    setIsLoading(true)
-    Promise.all([
-      getPortfolio(selectedUser.id),
-      getHoldingsByUser(selectedUser.id),
-      getAssets(),
-    ])
-      .then(([portfolioData, rawHoldings, assets]) => {
-        const positions = Array.isArray(portfolioData?.positions) ? portfolioData.positions : []
-
-        // Build assetId → assetName map
-        const assetIdToName = {}
-        if (Array.isArray(assets)) {
-          assets.forEach((a) => { assetIdToName[a.assetId] = a.name })
-        }
-
-        // Build assetName → earliest transactionDate and ALL holdingIds
-        const assetNameToDate = {}
-        const assetNameToHoldingIds = {}
-        if (Array.isArray(rawHoldings)) {
-          rawHoldings.forEach((h) => {
-            const name = assetIdToName[h.assetId]
-            if (!name) return
-            const existing = assetNameToDate[name]
-            if (!existing || h.transactionDate < existing) {
-              assetNameToDate[name] = h.transactionDate
-            }
-            if (!assetNameToHoldingIds[name]) assetNameToHoldingIds[name] = []
-            assetNameToHoldingIds[name].push(h.holdingId)
-          })
-        }
-
-        setHoldings(
-          positions.map((p, index) => ({
-            id: index,
-            holdingIds: assetNameToHoldingIds[p.assetName] ?? [],
-            asset: p.assetName,
-            type: p.type,
-            quantity: p.totalQuantity,
-            buyPrice: p.totalQuantity > 0 ? p.totalInvested / p.totalQuantity : 0,
-            currentPrice: p.totalQuantity > 0 ? p.currentValue / p.totalQuantity : 0,
-            marketValue: p.currentValue,
-            profitLoss: p.profitLoss,
-            purchaseDate: assetNameToDate[p.assetName] ?? null,
-          }))
-        )
-      })
-      .catch((err) => {
-        console.error('Failed to load portfolio', err)
-        setHoldings([])
-      })
-      .finally(() => setIsLoading(false))
-  }, [selectedUser?.id, reloadKey])
+  const activeUserId = Number(selectedUser?.userId ?? selectedUser?.id ?? 0)
 
   useEffect(() => {
     const loadAssets = async () => {
@@ -84,65 +38,112 @@ function Holdings() {
     loadAssets()
   }, [])
 
-  const [searchTerm, setSearchTerm] = useState('')
-  const [assetType, setAssetType] = useState('All')
-  const [selectedHolding, setSelectedHolding] = useState(null)
+  useEffect(() => {
+    const loadHoldings = async () => {
+      if (!activeUserId) {
+        setHoldings([])
+        return
+      }
+
+      try {
+        setIsLoading(true)
+        const rows = await getHoldingsByUser(activeUserId)
+
+        const uniqueAssetIds = Array.from(
+          new Set(rows.map((h) => Number(h?.assetId)).filter((id) => Number.isFinite(id) && id > 0)),
+        )
+
+        const metaEntries = await Promise.allSettled(
+          uniqueAssetIds.map(async (assetId) => {
+            const meta = await getAssetById(assetId)
+            return [assetId, meta]
+          }),
+        )
+
+        const assetMetaMap = new Map(
+          metaEntries
+            .filter((r) => r.status === 'fulfilled')
+            .map((r) => r.value),
+        )
+
+        const normalized = rows.map((h) => {
+          const assetId = Number(h?.assetId ?? 0)
+          const meta = assetMetaMap.get(assetId)
+          const typeId = Number(meta?.typeId ?? h?.typeId ?? 0)
+
+          return {
+            ...h,
+            holdingId: h.holdingId ?? h.id,
+            assetId,
+            asset: meta?.name ?? h?.asset ?? h?.assetName ?? h?.ticker ?? '-',
+            type: ASSET_TYPE_BY_ID[typeId] ?? h?.type ?? 'Unknown',
+            buyPrice: h.buyPrice ?? h.pricePerUnit ?? 0,
+            currentPrice: h.currentPrice ?? h.ltp ?? 0,
+            marketValue:
+              h.marketValue ??
+              Number(h.quantity ?? 0) * Number(h.currentPrice ?? h.ltp ?? 0),
+            profitLoss: h.profitLoss ?? 0,
+            transactionDate: h.transactionDate ?? h.purchaseDate ?? '',
+          }
+        })
+
+        setHoldings(normalized)
+      } catch (error) {
+        console.error('Failed to load holdings:', error)
+        setHoldings([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadHoldings()
+  }, [activeUserId, reloadKey])
 
   const assetTypeOptions = useMemo(() => {
-    const uniqueTypes = [...new Set(holdings.map((item) => item.type))]
+    const uniqueTypes = Array.from(new Set(holdings.map((h) => h?.type).filter(Boolean)))
     return ['All', ...uniqueTypes]
   }, [holdings])
 
   const filteredHoldings = useMemo(() => {
-    return holdings.filter((item) => {
-      const matchesSearch = item.asset.toLowerCase().includes(searchTerm.trim().toLowerCase())
-      const matchesType = assetType === 'All' || item.type === assetType
+    const q = searchTerm.trim().toLowerCase()
+    return holdings.filter((h) => {
+      const matchesSearch =
+        !q ||
+        String(h?.asset ?? '').toLowerCase().includes(q) ||
+        String(h?.type ?? '').toLowerCase().includes(q)
+
+      const matchesType = assetType === 'All' || String(h?.type ?? '') === assetType
       return matchesSearch && matchesType
     })
   }, [holdings, searchTerm, assetType])
 
-  const handleDeleteClick = (holding) => {
-    setSelectedHolding(holding)
+  const handleEditClick = (row) => {
+    setEditingHolding(row)
+    setIsEditOpen(true)
   }
 
-  const handleDeleteConfirm = async () => {
-    if (!selectedHolding) return
-    
-    const holdingIds = selectedHolding?.holdingIds ?? []
-    
-    // Remove from UI immediately
-    setHoldings((prev) => prev.filter((item) => item.id !== selectedHolding.id))
-    setSelectedHolding(null)
-    
-    // Delete ALL holdingIds for this asset from backend
+  const handleDeleteHolding = async (row) => {
+    const holdingId = Number(row?.holdingId ?? row?.id ?? 0)
+    if (!holdingId) return
+
+    const ok = window.confirm('Delete this holding?')
+    if (!ok) return
+
     try {
-      if (holdingIds.length > 0) {
-        await Promise.all(holdingIds.map((id) => deleteHolding(id)))
-      }
-    } catch (err) {
-      console.error('Failed to delete holding from database:', err)
-      // Reload to show current state if delete failed
+      await deleteHolding(holdingId)
+      window.alert('Holding deleted successfully.')
       setReloadKey((v) => v + 1)
+    } catch (error) {
+      const msg = error?.response?.data?.message || error?.message || 'Failed to delete holding.'
+      window.alert(msg)
     }
-  }
-
-  const handleEditClick = (holding) => {
-    setEditingHolding({
-      holdingId: holding?.holdingId ?? holding?.id,
-      assetId: holding?.assetId,
-      quantity: holding?.quantity,
-      actionId: holding?.actionId,
-      pricePerUnit: holding?.buyPrice ?? holding?.pricePerUnit,
-      transactionDate: holding?.purchaseDate ?? holding?.transactionDate,
-    })
-    setIsAddAssetOpen(true)
   }
 
   return (
     <div className="space-y-6">
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <h2 className="text-2xl font-bold text-slate-900">Holdings</h2>
-        <p className="mt-1 text-sm text-slate-600">Manage yourr portfolio assests</p>
+        <p className="mt-1 text-sm text-slate-600">Manage your portfolio assets</p>
 
         <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-[1fr_220px]">
           <input
@@ -170,25 +171,19 @@ function Holdings() {
       <HoldingsTable
         holdings={filteredHoldings}
         isLoading={isLoading}
-        onDelete={handleDeleteClick}
         onEditClick={handleEditClick}
+        onDelete={handleDeleteHolding}
       />
 
-      <DeleteHoldingDialog
-        isOpen={Boolean(selectedHolding)}
-        onClose={() => setSelectedHolding(null)}
-        onConfirm={handleDeleteConfirm}
-      />
-
-      <AddAsset
-        isOpen={isAddAssetOpen}
+      <EditHoldingModal
+        isOpen={isEditOpen}
         onClose={() => {
-          setIsAddAssetOpen(false)
+          setIsEditOpen(false)
           setEditingHolding(null)
         }}
         initialData={editingHolding}
         assetOptions={assetOptions}
-        onSuccesss={() => setReloadKey((v) => v + 1)}
+        onSuccess={() => setReloadKey((v) => v + 1)}
       />
     </div>
   )

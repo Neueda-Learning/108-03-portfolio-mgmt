@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from 'react'
 import UserContext from '../context/UserContext'
-import { createHolding, updateHolding } from '../services/holdingService.js'
+import { createHolding } from '../services/holdingService.js'
 
 function getTodayDate() {
 	return new Date().toISOString().split('T')[0]
@@ -26,7 +26,8 @@ function AddAsset({
 		purchaseDate: getTodayDate(),
 	})
 
-	const isEditMode = Boolean(initialData?.holdingId)
+	const editHoldingId = Number(initialData?.holdingId ?? initialData?.id ?? 0)
+	const isEditMode = editHoldingId > 0
 
 	useEffect(() => {
 		if (!isOpen) return
@@ -74,42 +75,29 @@ function AddAsset({
 		setForm((prev) => ({ ...prev, [key]: value }))
 	}
 
-	const handleSubmit = async (event) => {
-		event.preventDefault()
+	const handleSubmit = async (e) => {
+		e.preventDefault()
 
-		const userId = selectedUser?.id ?? selectedUser?.userId
-		const assetId = Number(form.assetId)
-		const quantity = Number(form.quantity)
-		const pricePerUnit = Number(form.buyPrice)
-		const actionId = form.action === 'buy' ? 1 : 2
-		const transactionDate = form.purchaseDate
+		const userId = Number(selectedUser?.id ?? selectedUser?.userId ?? 0)
+		const payload = {
+			holdingId: 0,
+			assetId: Number(form.assetId),
+			quantity: Number(form.quantity),
+			userId,
+			actionId: form.action === 'buy' ? 1 : 2,
+			pricePerUnit: Number(form.buyPrice),
+			transactionDate: form.purchaseDate,
+		}
 
-		if (!userId || !assetId || !quantity || !pricePerUnit || !transactionDate) {
+		if (!payload.userId || !payload.assetId || !payload.quantity || !payload.pricePerUnit || !payload.transactionDate) {
 			window.alert('Please fill all required fields.')
 			return
 		}
 
-		const payload = {
-			holdingId: isEditMode ? Number(initialData.holdingId) : 0,
-			assetId,
-			quantity,
-			userId: Number(userId),
-			actionId,
-			pricePerUnit,
-			transactionDate,
-		}
-
 		try {
 			setIsSubmitting(true)
-
-			if (isEditMode) {
-				await updateHolding(Number(initialData.holdingId), payload)
-				window.alert('Holding updated successfully.')
-			} else {
-				await createHolding(payload)
-				window.alert('Asset added successfully.')
-			}
-
+			await createHolding(payload)
+			window.alert('Asset added successfully.')
 			if (onSubmit) await onSubmit(payload)
 			onClose?.()
 			onSuccesss?.()
