@@ -5,6 +5,7 @@ import HoldingsTable from '../holdings/HoldingsTable'
 import { getPortfolio, getHoldingsByUser } from '../services/portfolioService'
 import AddAsset from '../dashboard/AddAsset'
 import { getAssets } from '../services/assetService'
+import { deleteHolding } from '../services/holdingService'
 
 function Holdings() {
   const { selectedUser } = useContext(UserContext)
@@ -33,8 +34,9 @@ function Holdings() {
           assets.forEach((a) => { assetIdToName[a.assetId] = a.name })
         }
 
-        // Build assetName → earliest transactionDate
+        // Build assetName → earliest transactionDate and ALL holdingIds
         const assetNameToDate = {}
+        const assetNameToHoldingIds = {}
         if (Array.isArray(rawHoldings)) {
           rawHoldings.forEach((h) => {
             const name = assetIdToName[h.assetId]
@@ -43,12 +45,15 @@ function Holdings() {
             if (!existing || h.transactionDate < existing) {
               assetNameToDate[name] = h.transactionDate
             }
+            if (!assetNameToHoldingIds[name]) assetNameToHoldingIds[name] = []
+            assetNameToHoldingIds[name].push(h.holdingId)
           })
         }
 
         setHoldings(
           positions.map((p, index) => ({
             id: index,
+            holdingIds: assetNameToHoldingIds[p.assetName] ?? [],
             asset: p.assetName,
             type: p.type,
             quantity: p.totalQuantity,
@@ -96,10 +101,29 @@ function Holdings() {
     })
   }, [holdings, searchTerm, assetType])
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteClick = (holding) => {
+    setSelectedHolding(holding)
+  }
+
+  const handleDeleteConfirm = async () => {
     if (!selectedHolding) return
+    
+    const holdingIds = selectedHolding?.holdingIds ?? []
+    
+    // Remove from UI immediately
     setHoldings((prev) => prev.filter((item) => item.id !== selectedHolding.id))
     setSelectedHolding(null)
+    
+    // Delete ALL holdingIds for this asset from backend
+    try {
+      if (holdingIds.length > 0) {
+        await Promise.all(holdingIds.map((id) => deleteHolding(id)))
+      }
+    } catch (err) {
+      console.error('Failed to delete holding from database:', err)
+      // Reload to show current state if delete failed
+      setReloadKey((v) => v + 1)
+    }
   }
 
   const handleEditClick = (holding) => {
@@ -144,9 +168,9 @@ function Holdings() {
       </section>
 
       <HoldingsTable
-        holdings={holdings}
+        holdings={filteredHoldings}
         isLoading={isLoading}
-        onDelete={handleDeleteConfirm}
+        onDelete={handleDeleteClick}
         onEditClick={handleEditClick}
       />
 
