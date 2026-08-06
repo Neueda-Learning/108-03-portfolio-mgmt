@@ -154,11 +154,12 @@ npm run preview   # preview production build
 - Add authentication/authorization
 - Add pagination/sorting for holdings
 - Add optimistic UI updates for edit/delete
-- Add unit/integration tests (frontend + backend)
-- Add CI pipeline for lint/build/test gates
 
 ---
 
 ## License
 
 Internal project / educational use.
+
+
+User Story Link: https://docs.google.com/spreadsheets/d/1ywE124mo-ZYqE6dR0pi2dGBpJHhuIl4oGWU5zJHHMD0/edit?gid=0#gid=0
