@@ -11,26 +11,36 @@ function HoldingRow({ holding, onDelete, onEdit }) {
         return numeric.toLocaleString()
     }
 
-    const profitLoss = Number(holding?.profitLoss)
-    const profitLossClass = Number.isNaN(profitLoss)
-        ? 'text-slate-700'
-        : profitLoss >= 0
-            ? 'text-emerald-600'
-            : 'text-rose-600'
+    const status = Number(holding?.actionId) === 1
+        ? 'Buy'
+        : Number(holding?.actionId) === 2
+            ? 'Sell'
+            : '-'
+
+    const statusClass = Number(holding?.actionId) === 1
+        ? 'text-emerald-600'
+        : Number(holding?.actionId) === 2
+            ? 'text-rose-600'
+            : 'text-slate-700'
 
     return (
         <tr className="transition-colors duration-150 hover:bg-slate-50">
             <td className="border-b border-slate-100 px-3 py-3.5 text-sm font-semibold text-slate-900">
                 {holding?.asset ?? '-'}
             </td>
-            <td className="border-b border-slate-100 px-3 py-3.5 text-sm text-slate-700">{holding?.type ?? '-'}</td>
-            <td className="border-b border-slate-100 px-3 py-3.5 text-right text-sm text-slate-700">{formatNumber(holding?.quantity)}</td>
-            <td className="border-b border-slate-100 px-3 py-3.5 text-right text-sm text-slate-700">{formatCurrency(holding?.buyPrice)}</td>
-            <td className="border-b border-slate-100 px-3 py-3.5 text-right text-sm text-slate-700">{formatCurrency(holding?.currentPrice)}</td>
-            <td className="border-b border-slate-100 px-3 py-3.5 text-right text-sm font-semibold text-slate-900">{formatCurrency(holding?.marketValue)}</td>
-            <td className={`border-b border-slate-100 px-3 py-3.5 text-right text-sm font-semibold ${profitLossClass}`}>
-                {formatCurrency(holding?.profitLoss)}
+            <td className="border-b border-slate-100 px-3 py-3.5 text-sm text-slate-700">
+                {holding?.type ?? '-'}
             </td>
+            <td className="border-b border-slate-100 px-3 py-3.5 text-right text-sm text-slate-700">
+                {formatNumber(holding?.quantity)}
+            </td>
+            <td className="border-b border-slate-100 px-3 py-3.5 text-right text-sm text-slate-700">
+                {formatCurrency(holding?.buyPrice)}
+            </td>
+            <td className={`border-b border-slate-100 px-3 py-3.5 text-right text-sm font-semibold ${statusClass}`}>
+                {status}
+            </td>
+
             <td className="border-b border-slate-100 px-3 py-3.5 text-right">
                 <button
                     type="button"
@@ -40,6 +50,7 @@ function HoldingRow({ holding, onDelete, onEdit }) {
                     Edit
                 </button>
             </td>
+
             <td className="border-b border-slate-100 px-3 py-3.5 text-right">
                 <button
                     type="button"

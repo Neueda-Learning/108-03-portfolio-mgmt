@@ -23,13 +23,13 @@ const recommendationText = (cluster, annualReturn) => {
 
 function PortfolioRecommendation({ rows = [], isLoading = false }) {
     return (
-        <section className="w-full h-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 flex flex-col">
+        <section className="w-full h-full xl:h-[420px] rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 flex flex-col">
             <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-slate-900">Portfolio Recommendation</h3>
             </div>
 
-            <div className="mt-4 min-h-0 flex-1 overflow-x-auto">
-                <div className="h-full max-h-[320px] overflow-y-auto rounded-xl border border-slate-100">
+            <div className="mt-3 min-h-0 flex-1 overflow-x-auto">
+                <div className="h-full overflow-y-auto rounded-xl border border-slate-100">
                     <table className="min-w-[760px] w-full border-separate border-spacing-0">
                         <thead className="sticky top-0 bg-white">
                             <tr>

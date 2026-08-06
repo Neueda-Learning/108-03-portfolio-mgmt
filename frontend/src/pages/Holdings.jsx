@@ -8,8 +8,8 @@ import EditHoldingModal from '../holdings/EditHoldingModal'
 const ASSET_TYPE_BY_ID = {
     1: 'STOCK',
     2: 'BOND',
-    3: 'GOLD',
-    4: 'BOND',
+    3: 'MUTUAL FUND',
+    4: 'REAL ESTATE',
     5: 'CASH',
 }
 
