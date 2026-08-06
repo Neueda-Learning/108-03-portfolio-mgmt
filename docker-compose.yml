@@ -18,6 +18,15 @@ services:
       timeout: 5s
       retries: 10
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: portfolio-ollama
+    restart: unless-stopped
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
   backend:
     build:
       context: ./backend
@@ -27,10 +36,17 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      ollama:
+        condition: service_started
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/portfoliodb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: portuser
       SPRING_DATASOURCE_PASSWORD: portuser
+
+      # Local LLM settings (backend should read these)
+      LLM_PROVIDER: ollama
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: qwen2.5:7b-instruct
     ports:
       - "${BACKEND_PORT:-8080}:8080"
 
@@ -46,6 +62,6 @@ services:
     ports:
       - "${FRONTEND_PORT:-5173}:5173"
 
-
 volumes:
   mysql_data:
+  ollama_data:

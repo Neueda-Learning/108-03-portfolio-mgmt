@@ -20,4 +20,10 @@ public class RestClientConfig {
     RestClient priceApiRestClientV2(@Value("${finnhub.api.base.url}") String baseUrl) {
         return RestClient.builder().baseUrl(baseUrl).build();
     }
+
+    @Bean
+    @Qualifier("geminiRestClient")
+    RestClient geminiRestClient(@Value("${gemini.api.base.url}") String baseUrl) {
+        return RestClient.builder().baseUrl(baseUrl).build();
+    }
 }

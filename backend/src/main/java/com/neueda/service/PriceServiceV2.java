@@ -32,7 +32,6 @@ public class PriceServiceV2 {
                         .build())
                 .retrieve()
                 .body(FinnhubQuote.class);
-        System.out.println(response);
         return new PriceResponse(
                 ticker.toUpperCase(),
                 response.currentPrice(),
