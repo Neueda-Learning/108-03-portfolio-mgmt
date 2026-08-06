@@ -21,6 +21,7 @@ public class PriceServiceV2 {
                           @Value("${finnhub.api.key}") String apiToken) {
         this.client = client;
         this.API_TOKEN = apiToken;
+        System.out.println(apiToken);
     }
 
     public PriceResponse getPrice(String ticker){
