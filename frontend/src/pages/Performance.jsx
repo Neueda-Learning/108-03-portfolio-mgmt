@@ -292,17 +292,8 @@ const Performance = () => {
         </div>
       </section>
 
-      <PerformanceSummary
-        invested={summary.invested}
-        currentValue={summary.currentValue}
-        profitLoss={summary.profitLoss}
-        profitLossPct={summary.profitLossPct}
-        isUpdating={isUpdating}
-      />
-
       <section
         className={[
-          'grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]',
           'transition-opacity duration-200',
           isUpdating ? 'opacity-60' : 'opacity-100',
         ].join(' ')}
@@ -311,12 +302,6 @@ const Performance = () => {
           <div className="h-[340px] animate-pulse rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900" />
         ) : (
           <PortfolioChart chartData={chartData} xAxisTicks={xAxisTicks} />
-        )}
-
-        {isUpdating ? (
-          <div className="h-[340px] animate-pulse rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900" />
-        ) : (
-          <AssetAllocationChart data={allocationData} />
         )}
       </section>
     </div>
