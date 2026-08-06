@@ -44,7 +44,6 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/portfoliodb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: portuser
       SPRING_DATASOURCE_PASSWORD: portuser
-      FINNHUB_API_KEY: ${FINNHUB_API_KEY:-}
 
       # Local LLM settings (backend should read these)
       LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
