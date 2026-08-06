@@ -187,7 +187,7 @@ WHERE u.email = 'pranavmenon@2019'
     INSERT INTO holdings (user_id, asset_id, quantity, action_id, price_per_unit, transaction_date)
           SELECT u.user_id, a.asset_id, 10.00, ac.action_id, 180.00, CURRENT_DATE
           FROM users u
-          JOIN assets a ON a.name = 'Mutual Fund'
+          JOIN assets a ON a.name = 'VFIAX'
           JOIN actions ac ON ac.name = 'BUY'
           WHERE u.email = 'pranavmenon@2019'
             AND NOT EXISTS (
