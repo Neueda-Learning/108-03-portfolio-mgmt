@@ -1,0 +1,57 @@
+{
+  "AAPL": {
+    "cluster": "BALANCED",
+    "volatility": 0.2594,
+    "annual_return": 0.4654
+  },
+  "AMZN": {
+    "cluster": "VOLATILE",
+    "volatility": 0.3455,
+    "annual_return": 0.3168
+  },
+  "GOOG": {
+    "cluster": "BALANCED",
+    "volatility": 0.3183,
+    "annual_return": 0.7165
+  },
+  "JNJ": {
+    "cluster": "BALANCED",
+    "volatility": 0.1827,
+    "annual_return": 0.4536
+  },
+  "JPM": {
+    "cluster": "DEFENSIVE",
+    "volatility": 0.2235,
+    "annual_return": 0.258
+  },
+  "KO": {
+    "cluster": "DEFENSIVE",
+    "volatility": 0.1863,
+    "annual_return": 0.2748
+  },
+  "MSFT": {
+    "cluster": "VOLATILE",
+    "volatility": 0.3199,
+    "annual_return": -0.015
+  },
+  "NVDA": {
+    "cluster": "VOLATILE",
+    "volatility": 0.3656,
+    "annual_return": 0.2765
+  },
+  "PG": {
+    "cluster": "DEFENSIVE",
+    "volatility": 0.1979,
+    "annual_return": 0.0152
+  },
+  "TSLA": {
+    "cluster": "VOLATILE",
+    "volatility": 0.4642,
+    "annual_return": 0.1522
+  },
+  "XOM": {
+    "cluster": "BALANCED",
+    "volatility": 0.2495,
+    "annual_return": 0.4128
+  }
+}
