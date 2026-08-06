@@ -1,13 +1,10 @@
 package com.neueda.service;
 
 import com.neueda.dto.AiInsightResponse;
-import com.neueda.dto.GeminiGenerateContentRequest;
-import com.neueda.dto.GeminiGenerateContentResponse;
 import com.neueda.dto.InsightsResponse;
 import com.neueda.dto.PortfolioResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -46,29 +43,17 @@ public class AiInsightsService {
             """;
     private final PortfolioService portfolioService;
     private final InsightService insightService;
-    private final RestClient geminiClient;
     private final RestClient ollamaClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final String provider;
-    private final String apiKey;
-    private final String geminiModel;
     private final String ollamaModel;
 
     public AiInsightsService(PortfolioService portfolioService,
                              InsightService insightService,
-                             @Qualifier("geminiRestClient") RestClient geminiClient,
-                             @Value("${llm.provider:gemini}") String provider,
-                             @Value("${gemini.api.key:}") String apiKey,
-                             @Value("${gemini.model:gemini-2.0-flash}") String geminiModel,
                              @Value("${ollama.base.url:http://localhost:11434}") String ollamaBaseUrl,
                              @Value("${ollama.model:qwen2.5:7b-instruct}") String ollamaModel) {
         this.portfolioService = portfolioService;
         this.insightService = insightService;
-        this.geminiClient = geminiClient;
         this.ollamaClient = RestClient.builder().baseUrl(ollamaBaseUrl).build();
-        this.provider = provider;
-        this.apiKey = apiKey;
-        this.geminiModel = geminiModel;
         this.ollamaModel = ollamaModel;
     }
 
@@ -81,45 +66,7 @@ public class AiInsightsService {
 
     public AiInsightResponse getAiInsights(int accountId) {
         String payload = buildPayload(accountId);
-
-        if ("ollama".equalsIgnoreCase(provider)) {
-            return getOllamaInsights(accountId, payload);
-        }
-
-        if (apiKey == null || apiKey.isBlank()) {
-            log.warn("Gemini API key is not configured; falling back to local model if available");
-            return getOllamaInsights(accountId, payload);
-        }
-
-        try {
-            GeminiGenerateContentResponse response = geminiClient.post()
-                    .uri(uriBuilder -> uriBuilder
-                            .path("/v1beta/models/{model}:generateContent")
-                            .queryParam("key", apiKey)
-                            .build(geminiModel))
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(new GeminiGenerateContentRequest(
-                            List.of(new GeminiGenerateContentRequest.Content(
-                                    List.of(new GeminiGenerateContentRequest.Part(PROMPT + "\n\nInput JSON:\n" + payload))
-                            )),
-                            new GeminiGenerateContentRequest.GenerationConfig("application/json")
-                    ))
-                    .retrieve()
-                    .body(GeminiGenerateContentResponse.class);
-
-            String rawJson = extractResponseText(response);
-            ParsedAiInsight parsed = objectMapper.readValue(stripCodeFences(rawJson), ParsedAiInsight.class);
-
-            return new AiInsightResponse(
-                    parsed.summary() == null ? "AI insights generated successfully." : parsed.summary(),
-                    parsed.recommendations() == null ? List.of() : parsed.recommendations(),
-                    true,
-                    DISCLAIMER
-            );
-        } catch (Exception e) {
-            log.error("Failed to generate Gemini AI insights for account {}", accountId, e);
-            return getOllamaInsights(accountId, payload);
-        }
+        return getOllamaInsights(accountId, payload);
     }
 
     private AiInsightResponse getOllamaInsights(int accountId, String payload) {
@@ -151,19 +98,6 @@ public class AiInsightsService {
         }
     }
 
-    private String extractResponseText(GeminiGenerateContentResponse response) {
-        if (response == null || response.candidates() == null || response.candidates().isEmpty()) {
-            throw new IllegalStateException("Gemini returned no candidates");
-        }
-
-        return response.candidates().stream()
-                .filter(candidate -> candidate.content() != null && candidate.content().parts() != null)
-                .flatMap(candidate -> candidate.content().parts().stream())
-                .map(GeminiGenerateContentResponse.Part::text)
-                .filter(text -> text != null && !text.isBlank())
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Gemini candidate contained no text response"));
-    }
 
     private String stripCodeFences(String rawJson) {
         String trimmed = rawJson == null ? "" : rawJson.trim();
