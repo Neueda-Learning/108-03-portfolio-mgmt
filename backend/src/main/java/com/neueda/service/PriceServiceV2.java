@@ -18,6 +18,7 @@ public class PriceServiceV2 {
                           @Value("${finnhub.api.key}") String apiToken) {
         this.client = client;
         this.API_TOKEN = apiToken;
+        System.out.println(apiToken);
     }
 
     public PriceResponse getPrice(String ticker){
@@ -29,7 +30,6 @@ public class PriceServiceV2 {
                         .build())
                 .retrieve()
                 .body(FinnhubQuote.class);
-        System.out.println(response);
         return new PriceResponse(
                 ticker.toUpperCase(),
                 response.currentPrice(),
